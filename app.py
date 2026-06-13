@@ -276,7 +276,7 @@ for i, widget_key in enumerate(widget_keys):
 with param_cols[-1]:
     st.write("")
     st.write("")
-    run_button = st.button("Run Analysis", type="primary", use_container_width=True)
+    run_button = st.button("Run Analysis", type="primary", width="stretch")
 
 
 required_args = list(inspect.signature(spec.func).parameters.keys())
@@ -305,7 +305,7 @@ with context_right:
         admission_info = merged_data[
             merged_data["HADM_ID"] == params["hadm_id"]
         ][["HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"]].drop_duplicates()
-        st.dataframe(admission_info, use_container_width=True, hide_index=True)
+        st.dataframe(admission_info, width="stretch", hide_index=True)
 
         if "lab" in display:
             st.markdown('<div class="section-title">Selected Lab Test</div>', unsafe_allow_html=True)
@@ -424,14 +424,14 @@ if run_button and params_ready:
                 st.line_chart(chart_df)
 
         if isinstance(result, pd.DataFrame) and not result.empty:
-            st.dataframe(result, use_container_width=True, hide_index=True)
+            st.dataframe(result, width="stretch", hide_index=True)
             csv = result.to_csv(index=False).encode("utf-8")
             st.download_button(
                 label="Download Result as CSV",
                 data=csv,
                 file_name="clinical_lab_result.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
         elif isinstance(result, pd.DataFrame) and result.empty:
             st.info("No matching records were found for the selected question and parameters.")
