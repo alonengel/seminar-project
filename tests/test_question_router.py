@@ -63,6 +63,19 @@ def test_missing_admission_is_rejected_with_hint():
     assert "admission" in r["message"].lower()
 
 
+def test_unknown_admission_is_rejected_clearly():
+    # 107522 does not exist (107521 does) - report the real problem, not a lab error.
+    r = route_question("Show hematocrit trend for admission 107522")
+    assert not r["matched"]
+    assert "not found" in r["message"].lower()
+
+
+def test_unknown_patient_is_rejected_clearly():
+    r = route_question("list all admissions for patient 999999")
+    assert not r["matched"]
+    assert "not found" in r["message"].lower()
+
+
 def test_empty_input_is_rejected():
     assert not route_question("")["matched"]
 

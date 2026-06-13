@@ -21,6 +21,10 @@ EXAMPLES = [
     "Compare first and last pO2 values for admission 177047",
 ]
 
+# Valid identifier sets, for fast existence checks and clear error messages.
+_HADM_IDS = set(data_prep.merged_data["HADM_ID"].dropna().astype(int))
+_SUBJECT_IDS = set(data_prep.merged_data["SUBJECT_ID_x"].dropna().astype(int))
+
 
 def _fail(message):
     return {"matched": False, "question_id": None, "params": {}, "lab_label": None, "message": message}
@@ -103,6 +107,12 @@ def route_question(text):
 
     hadm_id = _extract_hadm(cleaned)
     subject_id = _extract_subject(cleaned)
+
+    if hadm_id is not None and hadm_id not in _HADM_IDS:
+        return _fail(f"Admission {hadm_id} was not found in the dataset.")
+    if subject_id is not None and subject_id not in _SUBJECT_IDS:
+        return _fail(f"Patient {subject_id} was not found in the dataset.")
+
     itemid, lab_label = _resolve_lab(cleaned, hadm_id)
     question_id = _classify(cleaned, has_lab=itemid is not None)
 
@@ -123,7 +133,10 @@ def route_question(text):
         params["subject_id"] = subject_id
     if "itemid" in needs:
         if itemid is None:
-            return _fail("Please name a lab test, for example chloride, hematocrit, or pO2.")
+            return _fail(
+                f"Could not find a lab test for admission {hadm_id}. "
+                "Try naming one like chloride, hematocrit, or pO2."
+            )
         params["itemid"] = itemid
     if "start_time" in needs or "end_time" in needs:
         dates = re.findall(r"\d{4}-\d{2}-\d{2}", cleaned)
