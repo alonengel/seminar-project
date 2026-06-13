@@ -39,5 +39,6 @@ Newest entries at the top.
 ### Status
 - Plan written and mirrored into the repo.
 - Baseline + plan/docs committed and pushed to `origin`.
-- Step 17 fully implemented and verified (pipeline + all 11 questions). Streamlit UI pending a manual run with streamlit installed.
-- Implementation commit pending (awaiting go-ahead to commit/push).
+- Step 17 fully implemented and verified (pipeline + all 11 questions).
+- Implementation committed in 4 logical commits (refactor / new questions / UI / docs) and pushed to `origin`.
+- Remaining: run the Streamlit UI manually (`pip install -r requirements.txt`, then `streamlit run app.py`), and replace the dataset "add link here" placeholder with the team's shared link.
