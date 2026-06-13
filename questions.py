@@ -104,6 +104,60 @@ QUESTION_REGISTRY: List[QuestionSpec] = [
         category="Single lab test",
         extra_validate=_single_row,
     ),
+    # ----- Step 17 additions -----
+    QuestionSpec(
+        id=6,
+        label="Show summary statistics (min/max/mean) of a lab test during an admission",
+        params=["hadm_id", "itemid"],
+        func=data_prep.get_lab_summary_stats,
+        expected_columns=["HADM_ID", "ITEMID", "LABEL", "Count", "Min", "Max", "Mean", "VALUEUOM"],
+        category="Single lab test",
+        extra_validate=_single_row,
+    ),
+    QuestionSpec(
+        id=7,
+        label="Count abnormal vs normal results during an admission",
+        params=["hadm_id"],
+        func=data_prep.count_abnormal_vs_normal,
+        expected_columns=["HADM_ID", "Total Tests", "Abnormal", "Normal"],
+        category="Abnormal results",
+        extra_validate=_single_row,
+    ),
+    QuestionSpec(
+        id=8,
+        label="Show abnormal results for a specific lab test during an admission",
+        params=["hadm_id", "itemid"],
+        func=data_prep.get_abnormal_results_for_lab,
+        expected_columns=["HADM_ID", "ITEMID", "LABEL", "VALUENUM", "VALUEUOM", "CHARTTIME", "FLAG"],
+        category="Abnormal results",
+        extra_validate=_only_abnormal,
+    ),
+    QuestionSpec(
+        id=9,
+        label="List all abnormal flagged lab tests during an admission",
+        params=["hadm_id"],
+        func=data_prep.get_abnormal_tests_summary,
+        expected_columns=["HADM_ID", "ITEMID", "LABEL", "Abnormal Count"],
+        category="Abnormal results",
+    ),
+    QuestionSpec(
+        id=10,
+        label="Show lab values within a date range during an admission",
+        params=["hadm_id", "itemid", "date_range"],
+        func=data_prep.get_lab_values_in_range,
+        expected_columns=["HADM_ID", "ITEMID", "LABEL", "VALUENUM", "VALUEUOM", "CHARTTIME"],
+        category="Single lab test",
+        extra_validate=_time_ascending,
+        chart={"x": "CHARTTIME", "y": "VALUENUM"},
+    ),
+    QuestionSpec(
+        id=11,
+        label="List all admissions for a specific patient",
+        params=["subject_id"],
+        func=data_prep.get_patient_admissions,
+        expected_columns=["SUBJECT_ID", "HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"],
+        category="Patient overview",
+    ),
 ]
 
 REGISTRY_BY_ID = {q.id: q for q in QUESTION_REGISTRY}
@@ -134,6 +188,8 @@ def build_context() -> dict:
 #   fills -> the function-argument name(s) the widget produces in `params`
 # ---------------------------------------------------------------------------
 PARAM_DEFS = {
-    "hadm_id": {"label": "Admission ID (HADM_ID)", "kind": "hadm",   "fills": ["hadm_id"]},
-    "itemid":  {"label": "Lab Test",               "kind": "itemid", "fills": ["itemid"]},
+    "hadm_id":    {"label": "Admission ID (HADM_ID)",  "kind": "hadm",       "fills": ["hadm_id"]},
+    "itemid":     {"label": "Lab Test",                "kind": "itemid",     "fills": ["itemid"]},
+    "subject_id": {"label": "Patient ID (SUBJECT_ID)", "kind": "subject",    "fills": ["subject_id"]},
+    "date_range": {"label": "Date range",              "kind": "date_range", "fills": ["start_time", "end_time"]},
 }
