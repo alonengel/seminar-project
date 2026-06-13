@@ -19,6 +19,7 @@ other module reads from it, so adding a question is a one-place change.
 | --- | --- |
 | `data_prep.py` | Load the dataset once; one data function per question |
 | `questions.py` | `QuestionSpec` registry, parameter definitions, validators |
+| `question_router.py` | Controlled NL routing: map a free-text question to a supported question id + params (rule-based; no code generation) |
 | `code_generation.py` | Build a runnable code string from a spec + params |
 | `execution.py` | `exec()` the generated code; capture result/error/status |
 | `validation.py` | Check expected columns, shape, and per-question rules |
@@ -84,6 +85,11 @@ sequenceDiagram
   concept without the risk of free-text execution.
 - **No runtime user-defined questions.** Free-text questions are out of scope:
   they would break validation (no known expected columns) and safe execution.
+- **Controlled natural-language routing.** An optional NL layer
+  (`question_router.py`) maps a free-text question to a supported template plus
+  parameters using rule-based keyword matching. It only selects predefined
+  questions and never generates code; no LLM is used in the MVP (an LLM-assisted
+  router is future work and can replace it without changing the pipeline).
 - **Pinned dark theme** (`.streamlit/config.toml`) so the styling is readable for
   every viewer regardless of browser/OS theme.
 - **Dataset kept out of git** (size); retrieval is documented.

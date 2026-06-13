@@ -5,6 +5,13 @@ Newest entries at the top.
 
 ## 2026-06-13
 
+### Controlled natural-language routing (no LLM in MVP)
+- Added `question_router.py`: a rule-based/keyword router that maps a free-text clinical lab question to exactly one of the 11 supported question templates and extracts its parameters (admission, lab test, patient, dates). It only selects predefined questions and never generates free-form code.
+- Added an optional "Ask in natural language" box to the Streamlit UI; a matched query drives the same pipeline as the dropdown (e.g. "Show hematocrit trend for admission 107521").
+- Decision: no LLM in the MVP - predefined questions plus template-based generation are more reliable, testable, and reproducible. An LLM-assisted router / NL interface is future work and can replace the rule-based router without changing the pipeline.
+- Tests: added router unit tests + NL end-to-end tests (70 tests total, ~94% coverage).
+- Confirmed against the row-2 project brief: all five required components and inputs are covered; the NL layer strengthens alignment with the stated goal of automatically answering clinical questions.
+
 ### Switched to uv for dependency management
 - Adopted `uv` with a `pyproject.toml` (dependencies + a `dev` group + pytest/coverage config) and a committed `uv.lock`; removed `requirements.txt`.
 - App and tests now run via `uv run` (`uv run streamlit run app.py`, `uv run pytest`); the coverage gate is set to 85% in `pyproject.toml`.

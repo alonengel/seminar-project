@@ -49,6 +49,8 @@ multi-user state.
 5. Apply rule-based correction and retry on failure (bounded attempts).
 6. Present the result, generated code, validation details, and correction
    attempts; allow CSV download.
+7. Optionally accept a natural-language question and route it (rule-based) to one
+   of the supported questions, extracting its parameters.
 
 ## 6. Non-functional requirements
 
@@ -87,3 +89,19 @@ multi-user state.
 
 Data preparation and question design: Hala, Dana. Architecture, code
 generation, execution, validation, correction, and presentation: Anas, Alon.
+
+## 10. Controlled AI / NLP and LLM usage
+
+The system includes a controlled AI/NLP question-routing layer
+(`question_router.py`) that maps a natural-language clinical lab question into one
+of the supported question templates and extracts its parameters (admission ID, lab
+test, patient ID, dates). The router only selects a predefined question; it never
+generates or executes free-form code. In the current MVP this layer is rule-based
+(keyword and pattern matching).
+
+The system does not use an LLM in the current MVP. This was an intentional design
+decision because the supported questions are predefined, and template-based code
+generation provides more reliable, testable, and reproducible behavior. An
+LLM-based natural language interface (and an LLM-assisted version of the router) is
+proposed as future work; it can replace the rule-based router without changing the
+downstream pipeline.

@@ -73,6 +73,19 @@ Console (single pipeline run):
 uv run python main_pipeline.py
 ```
 
+## Natural-language input (optional)
+
+Besides the dropdown, you can type a question in plain English; it is routed
+(rule-based, no LLM) to one of the supported questions, for example:
+
+- "Show abnormal lab results for admission 145834"
+- "What is the latest chloride value for admission 199884?"
+- "Show hematocrit trend for admission 107521"
+
+The router (`question_router.py`) only selects a predefined question and extracts
+its parameters - it never generates or runs free-form code. An LLM-assisted
+version is proposed as future work.
+
 ## Adding a new question
 
 1. Add a data-prep function in `data_prep.py` that returns a `DataFrame`.
