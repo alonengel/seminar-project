@@ -1,8 +1,8 @@
 # Guidelines Gap Analysis
 
-Reference: "Guidelines for Writing Professional Software" (Dr. Segal Yoram).
-That document is from a different course, so it is used here as **inspiration**,
-not as a binding rubric. This page maps the project against its main themes.
+This page maps the project against common professional software-engineering
+practices (documentation, testing, modularity, configuration, and UX). These
+are used here as **inspiration**, not a binding rubric.
 
 ## Already in place
 
