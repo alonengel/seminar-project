@@ -289,38 +289,34 @@ params_ready = all(arg in params for arg in required_args)
 context_left, context_right = st.columns([1.1, 1])
 
 with context_left:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Selected Question</div>', unsafe_allow_html=True)
-    st.info(f"[{spec.id}] {spec.label}")
+    with st.container(border=True):
+        st.markdown('<div class="section-title">Selected Question</div>', unsafe_allow_html=True)
+        st.info(f"[{spec.id}] {spec.label}")
 
-    st.markdown('<div class="section-title">Selected Parameters</div>', unsafe_allow_html=True)
-    st.json(params)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Selected Parameters</div>', unsafe_allow_html=True)
+        st.json(params)
 
 with context_right:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+    with st.container(border=True):
+        if "hadm_id" in spec.params and "hadm_id" in params:
+            st.markdown('<div class="section-title">Admission Context</div>', unsafe_allow_html=True)
+            admission_info = merged_data[
+                merged_data["HADM_ID"] == params["hadm_id"]
+            ][["HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"]].drop_duplicates()
+            st.dataframe(admission_info, width="stretch", hide_index=True)
 
-    if "hadm_id" in spec.params and "hadm_id" in params:
-        st.markdown('<div class="section-title">Admission Context</div>', unsafe_allow_html=True)
-        admission_info = merged_data[
-            merged_data["HADM_ID"] == params["hadm_id"]
-        ][["HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"]].drop_duplicates()
-        st.dataframe(admission_info, width="stretch", hide_index=True)
+            if "lab" in display:
+                st.markdown('<div class="section-title">Selected Lab Test</div>', unsafe_allow_html=True)
+                st.success(display["lab"])
 
-        if "lab" in display:
-            st.markdown('<div class="section-title">Selected Lab Test</div>', unsafe_allow_html=True)
-            st.success(display["lab"])
+        elif "subject_id" in spec.params and "subject_id" in params:
+            st.markdown('<div class="section-title">Patient Context</div>', unsafe_allow_html=True)
+            patient_rows = merged_data[merged_data["SUBJECT_ID_x"] == params["subject_id"]]
+            n_admissions = patient_rows["HADM_ID"].nunique()
+            st.success(f"Patient {params['subject_id']} has {n_admissions} admission(s) in the dataset.")
 
-    elif "subject_id" in spec.params and "subject_id" in params:
-        st.markdown('<div class="section-title">Patient Context</div>', unsafe_allow_html=True)
-        patient_rows = merged_data[merged_data["SUBJECT_ID_x"] == params["subject_id"]]
-        n_admissions = patient_rows["HADM_ID"].nunique()
-        st.success(f"Patient {params['subject_id']} has {n_admissions} admission(s) in the dataset.")
-
-    else:
-        st.info("Select parameters to see context here.")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Select parameters to see context here.")
 
 
 # =========================

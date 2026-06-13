@@ -1,0 +1,8 @@
+# Pin a dark theme so the app's styling (which uses light text on dark cards)
+# renders correctly for everyone, regardless of the viewer's browser/OS theme.
+[theme]
+base = "dark"
+primaryColor = "#ef4444"
+backgroundColor = "#0b1220"
+secondaryBackgroundColor = "#111827"
+textColor = "#f9fafb"
