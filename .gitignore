@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large local data (exceeds GitHub's 100 MB file limit / redundant copies).
+# See docs/decisions/decision-log.md for how the dataset is handled.
+cleaned_merged_dataset.csv
+cleaned_merged_dataset.csv.xlsx
