@@ -5,6 +5,11 @@ Newest entries at the top.
 
 ## 2026-06-13
 
+### Step 18 - final deliverables
+- Added `docs/REPORT.md` (full project report), `docs/DEMO.md` (demo walkthrough script), and `docs/SLIDES.md` plus a generated `docs/Clinical_Lab_Analysis_System.pptx` (12-slide deck built with python-pptx).
+- Architecture diagrams remain as mermaid in `docs/PLAN.md` and `docs/REPORT.md`.
+- Remaining team item: replace the dataset "add link here" placeholder with the team's shared download link.
+
 ### UI improvements
 - Added a one-line help caption under each selected question (what it returns + the inputs it needs).
 - Richer result presentation: summary metric cards (latest value / first-vs-last / min-max-mean / abnormal counts / row count), an Altair trend chart with axis labels and lab units (questions 3 and 10), and color-coded status indicators (green pass / red fail / blue no-records).

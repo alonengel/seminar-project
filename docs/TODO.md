@@ -25,10 +25,11 @@ Status legend: [x] done, [~] in progress, [ ] not started.
 
 ## Phase 3 - Step 18 (final deliverables)
 
-- [ ] Final report and presentation slides
-- [ ] Demo scenario / walkthrough script
-- [ ] Add the dataset download link in `docs/decisions/decision-log.md`
-- [ ] Architecture diagram export for slides (source is in `PLAN.md`)
+- [x] Final project report (`docs/REPORT.md`)
+- [x] Presentation slides (`docs/SLIDES.md` + `docs/Clinical_Lab_Analysis_System.pptx`)
+- [x] Demo scenario / walkthrough script (`docs/DEMO.md`)
+- [x] Architecture diagram (mermaid in `docs/PLAN.md` and `docs/REPORT.md`)
+- [ ] Add the dataset download link in `docs/decisions/decision-log.md` (team to fill)
 
 ## Optional / nice-to-have (see `guidelines-gap-analysis.md`)
 
