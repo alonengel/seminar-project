@@ -85,12 +85,20 @@ No changes to `app.py`, `code_generation.py`, `validation.py`, or
 
 ## Tests
 
+Unit tests plus an end-to-end test (via Streamlit's `AppTest`) that exercises
+all 11 questions live in `tests/`:
+
 ```bash
-python test_correction.py
-python test_result_presentation.py
+python -m pytest tests/
 ```
+
+56 tests, 94% line coverage. See `docs/TEST_REPORT.md` for per-question expected
+results and `docs/assets/screenshots/` for a UI screenshot of each question.
 
 ## Project documentation
 
 - `docs/plans/` - implementation plans
 - `docs/decisions/decision-log.md` - decisions and progress log
+- `docs/TEST_REPORT.md` - test results, coverage, and per-question expectations
+- `docs/guidelines-gap-analysis.md` - mapping to professional-software guidelines
+- `docs/assets/screenshots/` - per-question UI screenshots

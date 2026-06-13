@@ -5,6 +5,13 @@ Newest entries at the top.
 
 ## 2026-06-13
 
+### Testing, coverage, and UI verification
+- Added a `tests/` suite: unit tests for every logic module plus an end-to-end test (Streamlit `AppTest`) covering all 11 questions, Q8 happy + no-records edge cases, and the category filter. 56 tests pass at 94% line coverage (target 85%).
+- Verified the running app in a real headless Chromium browser and captured a screenshot of each question (`docs/assets/screenshots/q01..q11.png`).
+- Fixed two UI rendering issues found during verification: empty context "cards" (now `st.container(border=True)`) and a light/dark theme mismatch that made headers unreadable (now pinned via `.streamlit/config.toml`).
+- Replaced the two ad-hoc root test scripts with the `tests/` suite; added `docs/TEST_REPORT.md` and `docs/guidelines-gap-analysis.md` (the latter references Dr. Segal's guidelines as inspiration; noted that it is from a different course, so heavier mandates like uv/SDK/150-line splits are treated as optional).
+- Tooling: kept `pip`/`requirements.txt`; installed `pytest`, `pytest-cov`, and `playwright` for testing only.
+
 ### Step 17 implementation (completed)
 - Refactored the 5 hardcoded questions into a config-driven registry (`questions.py`) backed by data functions in `data_prep.py`. Every module (code generation, validation, correction, pipeline, UI) now reads from the registry, so adding a question is a one-place change.
 - Added 6 new question types (11 total): summary statistics (Q6), abnormal vs normal counts (Q7), abnormal results for a specific test (Q8), distinct abnormal tests with counts (Q9), values within a date range (Q10), and all admissions for a patient (Q11).
