@@ -5,12 +5,17 @@ Newest entries at the top.
 
 ## 2026-06-13
 
+### Switched to uv for dependency management
+- Adopted `uv` with a `pyproject.toml` (dependencies + a `dev` group + pytest/coverage config) and a committed `uv.lock`; removed `requirements.txt`.
+- App and tests now run via `uv run` (`uv run streamlit run app.py`, `uv run pytest`); the coverage gate is set to 85% in `pyproject.toml`.
+- `uv sync` builds a local `.venv` (uv selected CPython 3.13); the suite passes there (56 tests, ~94% coverage).
+
 ### Testing, coverage, and UI verification
 - Added a `tests/` suite: unit tests for every logic module plus an end-to-end test (Streamlit `AppTest`) covering all 11 questions, Q8 happy + no-records edge cases, and the category filter. 56 tests pass at 94% line coverage (target 85%).
 - Verified the running app in a real headless Chromium browser and captured a screenshot of each question (`docs/assets/screenshots/q01..q11.png`).
 - Fixed two UI rendering issues found during verification: empty context "cards" (now `st.container(border=True)`) and a light/dark theme mismatch that made headers unreadable (now pinned via `.streamlit/config.toml`).
 - Replaced the two ad-hoc root test scripts with the `tests/` suite; added `docs/TEST_REPORT.md` and `docs/guidelines-gap-analysis.md` (a mapping against common professional software-engineering practices, treated as inspiration; heavier mandates like uv/SDK/150-line splits are noted as optional).
-- Tooling: kept `pip`/`requirements.txt`; installed `pytest`, `pytest-cov`, and `playwright` for testing only.
+- Tooling: installed `pytest`, `pytest-cov`, and `playwright` as dev dependencies (later moved under uv; see the entry above).
 
 ### Step 17 implementation (completed)
 - Refactored the 5 hardcoded questions into a config-driven registry (`questions.py`) backed by data functions in `data_prep.py`. Every module (code generation, validation, correction, pipeline, UI) now reads from the registry, so adding a question is a one-place change.
@@ -19,7 +24,7 @@ Newest entries at the top.
 - UI (`app.py`): registry-driven question dropdown with a category filter, parameter widgets rendered dynamically from each question's declared params (including the new patient-id and date-range inputs), a fixed result banner (no longer always green; now reflects success / no-records / failure), and a trend line chart for time-series questions.
 - Bug fix: the rule-based typo corrector used naive substring replacement, which corrupted the valid name `get_abnormal_results_for_lab`. It now matches whole identifiers only (word boundaries).
 - Cleanup / deliverables: removed leftover mock code from `code_generation.py`, added `requirements.txt` and `README.md`, and updated the two test scripts to the new spec-based signatures.
-- Verification: smoke-tested all 11 questions end-to-end (execution + validation pass) and both test scripts pass. The Streamlit UI was not launched here (streamlit is not installed in this environment); run `pip install -r requirements.txt` then `streamlit run app.py` to view it.
+- Verification: smoke-tested all 11 questions end-to-end (execution + validation pass) and both test scripts pass. The Streamlit UI was not launched here (streamlit is not installed in this environment); run `uv sync` then `uv run streamlit run app.py` to view it.
 
 ### Repository setup
 - Initialized git in the project folder on branch `main`.
@@ -48,4 +53,4 @@ Newest entries at the top.
 - Baseline + plan/docs committed and pushed to `origin`.
 - Step 17 fully implemented and verified (pipeline + all 11 questions).
 - Implementation committed in 4 logical commits (refactor / new questions / UI / docs) and pushed to `origin`.
-- Remaining: run the Streamlit UI manually (`pip install -r requirements.txt`, then `streamlit run app.py`), and replace the dataset "add link here" placeholder with the team's shared link.
+- Remaining: run the Streamlit UI manually (`uv sync`, then `uv run streamlit run app.py`), and replace the dataset "add link here" placeholder with the team's shared link.

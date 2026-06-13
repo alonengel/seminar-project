@@ -81,7 +81,7 @@ multi-user state.
 - `cleaned_merged_dataset.csv` is present locally (kept out of git for size;
   retrieval documented in `docs/decisions/decision-log.md`).
 - Only lab rows with a valid `HADM_ID` are used.
-- Depends on `pandas` and `streamlit` (see `requirements.txt`).
+- Depends on `pandas` and `streamlit`; managed with `uv` (see `pyproject.toml`).
 
 ## 9. Team
 

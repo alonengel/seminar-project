@@ -12,11 +12,11 @@ Automated tests for the Clinical Lab Analysis System.
 Run them with:
 
 ```bash
-pip install -r requirements.txt
-python -m pytest tests/ --cov=data_prep --cov=questions --cov=code_generation \
-  --cov=execution --cov=validation --cov=correction --cov=result_presentation \
-  --cov=main_pipeline --cov=app --cov-report=term-missing
+uv sync
+uv run pytest
 ```
+
+(Coverage is configured in `pyproject.toml` with an 85% minimum gate.)
 
 ## Coverage
 

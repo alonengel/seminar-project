@@ -49,10 +49,10 @@ one-place change (see "Adding a new question" below).
 ## Setup
 
 1. Python 3.10+.
-2. Install dependencies:
+2. Install [uv](https://docs.astral.sh/uv/), then install dependencies:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 3. Place `cleaned_merged_dataset.csv` in the project root (next to `app.py`).
@@ -64,13 +64,13 @@ pip install -r requirements.txt
 Streamlit UI:
 
 ```bash
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 Console (single pipeline run):
 
 ```bash
-python main_pipeline.py
+uv run python main_pipeline.py
 ```
 
 ## Adding a new question
@@ -89,7 +89,7 @@ Unit tests plus an end-to-end test (via Streamlit's `AppTest`) that exercises
 all 11 questions live in `tests/`:
 
 ```bash
-python -m pytest tests/
+uv run pytest
 ```
 
 56 tests, 94% line coverage. See `docs/TEST_REPORT.md` for per-question expected

@@ -20,7 +20,10 @@ are used here as **inspiration**, not a binding rubric.
 - **Edge cases & graceful degradation**: no-records banner, correction loop,
   empty/invalid handling.
 - **Docstrings** on modules/functions; comments explain intent.
-- **Config separated from code**: dark theme in `.streamlit/config.toml`.
+- **Config separated from code**: dark theme in `.streamlit/config.toml`;
+  build/test config in `pyproject.toml`.
+- **Dependency management with `uv`**: `pyproject.toml` + `uv.lock` are the
+  single source of truth; the app and tests run via `uv run` (coverage gated at 85%).
 - **Version control**: clear commit history, dataset kept out of git with a
   documented retrieval path.
 - **UX**: status visibility, readable result/validation/code tabs, clear error
@@ -31,14 +34,11 @@ are used here as **inspiration**, not a binding rubric.
 - **SDK layer + API Gatekeeper + rate limiting** — designed for systems that
   call external/LLM APIs. This MVP uses only a local dataset and template-based
   code generation, so there are no external API calls to gate.
-- **`uv` package manager** — the project currently uses `pip` + `requirements.txt`.
-  Migrating to `uv`/`pyproject.toml` is straightforward if required.
 - **150-line file cap** — most files comply; `app.py` is larger because it is the
   UI layer. It could be split into UI helper modules if strictly required.
 - **Cost/token analysis** — not applicable (no paid API usage at runtime).
 
 ## Suggested next steps (if pursuing full compliance)
 
-1. Add `pyproject.toml` (build + pytest/coverage config) and optionally adopt `uv`.
-2. Split `app.py` into smaller UI modules if the 150-line cap is required.
-3. Add a `LICENSE` file.
+1. Split `app.py` into smaller UI modules if the 150-line cap is required.
+2. Add a `LICENSE` file.
