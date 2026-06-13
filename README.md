@@ -97,6 +97,9 @@ results and `docs/assets/screenshots/` for a UI screenshot of each question.
 
 ## Project documentation
 
+- `docs/PRD.md` - product requirements
+- `docs/PLAN.md` - architecture and design
+- `docs/TODO.md` - task tracking
 - `docs/plans/` - implementation plans
 - `docs/decisions/decision-log.md` - decisions and progress log
 - `docs/TEST_REPORT.md` - test results, coverage, and per-question expectations

@@ -8,8 +8,8 @@ are used here as **inspiration**, not a binding rubric.
 
 - **README.md** at the root with install, usage, supported questions, and
   "adding a question" instructions.
-- **`docs/` folder** with plans, a decision/progress log, this gap analysis,
-  and a test report.
+- **`docs/` folder** with `PRD.md`, `PLAN.md`, `TODO.md`, plans, a
+  decision/progress log, this gap analysis, and a test report.
 - **Modular structure** with a clear separation of concerns
   (`data_prep`, `questions`, `code_generation`, `execution`, `validation`,
   `correction`, `result_presentation`, `main_pipeline`, `app`).
@@ -35,13 +35,10 @@ are used here as **inspiration**, not a binding rubric.
   Migrating to `uv`/`pyproject.toml` is straightforward if required.
 - **150-line file cap** — most files comply; `app.py` is larger because it is the
   UI layer. It could be split into UI helper modules if strictly required.
-- **Formal `PRD.md` / `PLAN.md` / `TODO.md`** — equivalents exist under
-  `docs/plans/` and `docs/decisions/`; these could be renamed/expanded to match.
 - **Cost/token analysis** — not applicable (no paid API usage at runtime).
 
 ## Suggested next steps (if pursuing full compliance)
 
-1. Add `pyproject.toml` (build + pytest/coverage config) and adopt `uv`.
-2. Rename/expand docs to `PRD.md`, `PLAN.md`, `TODO.md`.
-3. Split `app.py` into smaller UI modules if the 150-line cap is required.
-4. Add a `LICENSE` and a short architecture diagram to the docs.
+1. Add `pyproject.toml` (build + pytest/coverage config) and optionally adopt `uv`.
+2. Split `app.py` into smaller UI modules if the 150-line cap is required.
+3. Add a `LICENSE` file.
