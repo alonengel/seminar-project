@@ -6,6 +6,7 @@ import streamlit as st
 import data_prep
 import questions
 from main_pipeline import run_pipeline
+from question_router import EXAMPLES, route_question
 
 
 st.set_page_config(
@@ -165,6 +166,23 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # =========================
+# Natural-language question (optional, controlled routing)
+# =========================
+with st.expander("Ask a clinical lab question in natural language (optional)"):
+    st.caption(
+        "Your question is routed to one of the supported question templates - "
+        "no free-form code is generated or run. Examples:"
+    )
+    st.markdown("\n".join(f"- {example}" for example in EXAMPLES))
+    nl_text = st.text_input(
+        "Your question",
+        key="nl_text",
+        placeholder="e.g. Show hematocrit trend for admission 107521",
+    )
+    nl_submit = st.button("Interpret & Run", key="nl_submit")
+
+
+# =========================
 # Question Selection Panel
 # =========================
 st.markdown('<div class="section-title">Question Selection</div>', unsafe_allow_html=True)
@@ -283,6 +301,23 @@ required_args = list(inspect.signature(spec.func).parameters.keys())
 params_ready = all(arg in params for arg in required_args)
 
 
+# A natural-language query, when submitted and understood, overrides the
+# structured selection and drives the same pipeline.
+nl_error = None
+nl_interpretation = None
+if nl_submit and (nl_text or "").strip():
+    routed = route_question(nl_text)
+    if routed["matched"]:
+        spec = questions.get_question(routed["question_id"])
+        params = routed["params"]
+        params_ready = True
+        run_button = True
+        nl_interpretation = routed["message"]
+        display = {}
+    else:
+        nl_error = routed["message"]
+
+
 # =========================
 # Context Section
 # =========================
@@ -324,6 +359,9 @@ with context_right:
 # =========================
 if run_button and params_ready:
     st.divider()
+
+    if nl_interpretation:
+        st.success("Interpreted as: " + nl_interpretation)
 
     with st.spinner("Running analysis through the full pipeline..."):
         final_result = run_pipeline(spec.id, params)
@@ -459,10 +497,15 @@ if run_button and params_ready:
         else:
             st.info("No correction attempts were needed.")
 
+elif nl_error:
+    st.divider()
+    st.warning(nl_error)
+    st.info("Examples: " + " | ".join(EXAMPLES))
+
 elif run_button and not params_ready:
     st.divider()
     st.warning("Please complete all parameters before running the analysis.")
 
 else:
     st.divider()
-    st.info("Choose a question and parameters, then click Run Analysis.")
+    st.info("Choose a question and parameters, then click Run Analysis - or ask in natural language above.")

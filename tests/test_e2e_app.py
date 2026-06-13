@@ -42,11 +42,26 @@ def _markdown(at):
     return " ".join(m.value for m in at.markdown if m.value)
 
 
+def _all_text(at):
+    chunks = []
+    for collection in (at.markdown, at.success, at.info, at.warning, at.error):
+        chunks.extend(m.value for m in collection if getattr(m, "value", None))
+    return " ".join(chunks)
+
+
 def _codes(at):
     try:
         return [c.value for c in at.code]
     except Exception:
         return []
+
+
+def _run(at):
+    """Click the structured 'Run Analysis' button (robust to other buttons)."""
+    button = next(b for b in at.button if b.label == "Run Analysis")
+    button.click()
+    at.run()
+    return at
 
 
 def test_app_loads_with_all_questions():
@@ -76,7 +91,7 @@ def test_question_renders_correct_widgets_and_runs(spec):
     if "subject_id" not in spec.params:
         assert "Patient ID (SUBJECT_ID)" not in labels
 
-    at.button[0].click().run()
+    _run(at)
     assert not at.exception, f"running Q{spec.id} raised an exception"
 
     md = _markdown(at)
@@ -104,7 +119,7 @@ def test_q8_happy_path_with_abnormal_lab():
     lab_box = next(sb for sb in at.selectbox if sb.label == "Lab Test")
     abnormal_option = next(o for o in lab_box.options if "ITEMID: 50893" in o)
     lab_box.set_value(abnormal_option).run()
-    at.button[0].click().run()
+    _run(at)
 
     assert not at.exception
     assert "Analysis completed successfully" in _markdown(at)
@@ -116,7 +131,7 @@ def test_q8_no_records_edge_case_is_graceful():
     """A lab with no abnormal readings shows the info banner, not an error."""
     spec = questions.get_question(8)
     at = _select_question(_fresh_app(), spec.label)
-    at.button[0].click().run()
+    _run(at)
     assert not at.exception
     md = _markdown(at)
     assert ("no matching records" in md) or ("Analysis completed successfully" in md)
@@ -129,3 +144,25 @@ def test_category_filter_narrows_question_list():
     options = at.selectbox[1].options
     assert len(options) < 11
     assert all(("admission" in o.lower()) or ("patient" in o.lower()) for o in options)
+
+
+def test_natural_language_query_runs_end_to_end():
+    at = _fresh_app()
+    at.text_input[0].set_value("Show hematocrit trend for admission 107521").run()
+    button = next(b for b in at.button if b.label == "Interpret & Run")
+    button.click()
+    at.run()
+    assert not at.exception
+    text = _all_text(at)
+    assert "Interpreted as:" in text
+    assert "Analysis completed successfully" in text
+
+
+def test_natural_language_unrecognized_query_is_handled():
+    at = _fresh_app()
+    at.text_input[0].set_value("what is the weather today").run()
+    button = next(b for b in at.button if b.label == "Interpret & Run")
+    button.click()
+    at.run()
+    assert not at.exception
+    assert "Could not recognise" in _all_text(at)
