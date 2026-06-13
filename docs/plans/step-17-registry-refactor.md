@@ -5,14 +5,14 @@
 
 ## Status checklist
 
-- [ ] **registry** - Create `questions.py` (`QuestionSpec` dataclass, `PARAM_DEFS`, `QUESTION_REGISTRY`, IDs 1-5 preserved); move data-prep functions + CSV load into `data_prep.py` to keep imports acyclic.
-- [ ] **codegen** - Refactor `code_generation.py` to build the code string from a `QuestionSpec` + params; remove leftover mock functions and the mock `__main__` block.
-- [ ] **validation** - Refactor `validation.py` to read `expected_columns` and optional `extra_validate` from the spec instead of hardcoded per-id branches.
-- [ ] **pipeline** - Refactor `main_pipeline.py` to build the execution context automatically from the registry and look up the spec by question id.
-- [ ] **ui** - Refactor `app.py` to render the dropdown and parameter widgets from the registry; fix the always-green success banner; optional trend chart and question grouping.
-- [ ] **new-questions** - Add new question specs Q6-Q9 (core) and optionally Q10-Q11 (date range / patient level) as single-object additions to the registry.
-- [ ] **deliverables** - Add `requirements.txt` and `README.md`; update `test_correction.py` and `test_result_presentation.py` to new signatures.
-- [ ] **smoke-test** - Run the pipeline end-to-end for every question id and verify execution + validation pass.
+- [x] **registry** - Create `questions.py` (`QuestionSpec` dataclass, `PARAM_DEFS`, `QUESTION_REGISTRY`, IDs 1-5 preserved); move data-prep functions + CSV load into `data_prep.py` to keep imports acyclic.
+- [x] **codegen** - Refactor `code_generation.py` to build the code string from a `QuestionSpec` + params; remove leftover mock functions and the mock `__main__` block.
+- [x] **validation** - Refactor `validation.py` to read `expected_columns` and optional `extra_validate` from the spec instead of hardcoded per-id branches.
+- [x] **pipeline** - Refactor `main_pipeline.py` to build the execution context automatically from the registry and look up the spec by question id.
+- [x] **ui** - Refactor `app.py` to render the dropdown and parameter widgets from the registry; fix the always-green success banner; optional trend chart and question grouping.
+- [x] **new-questions** - Add new question specs Q6-Q9 (core) and optionally Q10-Q11 (date range / patient level) as single-object additions to the registry.
+- [x] **deliverables** - Add `requirements.txt` and `README.md`; update `test_correction.py` and `test_result_presentation.py` to new signatures.
+- [x] **smoke-test** - Run the pipeline end-to-end for every question id and verify execution + validation pass.
 
 ## Goal
 
