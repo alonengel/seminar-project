@@ -5,6 +5,12 @@ Newest entries at the top.
 
 ## 2026-06-13
 
+### UI improvements
+- Added a one-line help caption under each selected question (what it returns + the inputs it needs).
+- Richer result presentation: summary metric cards (latest value / first-vs-last / min-max-mean / abnormal counts / row count), an Altair trend chart with axis labels and lab units (questions 3 and 10), and color-coded status indicators (green pass / red fail / blue no-records).
+- A sidebar and a header badge row were tried but removed as unnecessary per review.
+- All 72 tests still pass (~94% coverage); regenerated the per-question screenshots.
+
 ### Controlled natural-language routing (no LLM in MVP)
 - Added `question_router.py`: a rule-based/keyword router that maps a free-text clinical lab question to exactly one of the 11 supported question templates and extracts its parameters (admission, lab test, patient, dates). It only selects predefined questions and never generates free-form code.
 - Added an optional "Ask in natural language" box to the Streamlit UI; a matched query drives the same pipeline as the dropdown (e.g. "Show hematocrit trend for admission 107521").

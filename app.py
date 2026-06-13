@@ -1,5 +1,6 @@
 import inspect
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -142,6 +143,95 @@ button[data-baseweb="tab"] {
 
 merged_data = data_prep.merged_data
 
+QUESTION_HELP = {
+    1: "Lists every abnormal-flagged lab result for the admission.",
+    2: "Returns the most recent value of one lab test.",
+    3: "Shows how one lab test changes over time.",
+    4: "Lists all lab tests performed during the admission.",
+    5: "Compares the first and last value of one lab test.",
+    6: "Min, max, mean and count for one lab test.",
+    7: "How many results were abnormal versus normal.",
+    8: "Abnormal-flagged readings for one specific lab test.",
+    9: "Distinct lab tests that were ever flagged abnormal, with counts.",
+    10: "Values of one lab test within a date range.",
+    11: "All admissions recorded for one patient.",
+}
+
+_PARAM_NAMES = {
+    "hadm_id": "admission",
+    "itemid": "lab test",
+    "subject_id": "patient",
+    "date_range": "date range",
+}
+
+
+# =========================
+# Render helpers
+# =========================
+def _status_box(label, value, color):
+    st.markdown(
+        f'<div class="status-box"><div class="status-label">{label}</div>'
+        f'<div class="status-value" style="color:{color}">{value}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _render_metrics(spec, result):
+    if not isinstance(result, pd.DataFrame) or result.empty:
+        return
+    row = result.iloc[0]
+    if spec.id == 2:
+        cols = st.columns(2)
+        cols[0].metric("Latest value", f"{row['VALUENUM']} {row['VALUEUOM']}")
+        cols[1].metric("Measured at", str(row["CHARTTIME"]))
+    elif spec.id == 5:
+        cols = st.columns(3)
+        cols[0].metric("First value", f"{row['First Value']}")
+        cols[1].metric("Last value", f"{row['Last Value']}")
+        cols[2].metric("Difference", f"{row['Difference']}")
+    elif spec.id == 6:
+        cols = st.columns(4)
+        cols[0].metric("Count", int(row["Count"]))
+        cols[1].metric("Min", f"{row['Min']}")
+        cols[2].metric("Max", f"{row['Max']}")
+        cols[3].metric("Mean", f"{row['Mean']}")
+    elif spec.id == 7:
+        cols = st.columns(3)
+        cols[0].metric("Total tests", int(row["Total Tests"]))
+        cols[1].metric("Abnormal", int(row["Abnormal"]))
+        cols[2].metric("Normal", int(row["Normal"]))
+    else:
+        st.metric("Rows returned", len(result))
+
+
+def _render_trend_chart(spec, result):
+    if not (spec.chart and isinstance(result, pd.DataFrame) and not result.empty):
+        return
+    x_field, y_field = spec.chart["x"], spec.chart["y"]
+    if x_field not in result.columns or y_field not in result.columns:
+        return
+    data = result[[x_field, y_field]].dropna()
+    if data.empty:
+        return
+    unit = ""
+    if "VALUEUOM" in result.columns and not result["VALUEUOM"].dropna().empty:
+        unit = str(result["VALUEUOM"].dropna().iloc[0])
+    label = y_field
+    if "LABEL" in result.columns and not result["LABEL"].dropna().empty:
+        label = str(result["LABEL"].dropna().iloc[0])
+    y_title = f"{label} ({unit})" if unit else label
+    chart = (
+        alt.Chart(data)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X(f"{x_field}:T", title="Time"),
+            y=alt.Y(f"{y_field}:Q", title=y_title),
+            tooltip=list(data.columns),
+        )
+        .properties(width="container", height=320, title=f"{label} over time")
+    )
+    st.altair_chart(chart)
+
 
 # =========================
 # Header
@@ -206,6 +296,9 @@ with question_col:
     )
 
 spec = questions.get_question_by_label(question_label)
+
+_inputs = ", ".join(_PARAM_NAMES.get(p, p) for p in spec.params)
+st.caption(f"{QUESTION_HELP.get(spec.id, '')}  Inputs: {_inputs}.")
 
 
 # =========================
@@ -406,32 +499,20 @@ if run_button and params_ready:
     validation_text = "Passed" if validation_passed else "Failed"
     correction_text = "Yes" if correction_applied else "No"
 
-    status_col1, status_col2, status_col3, status_col4 = st.columns(4)
+    green, red, blue, amber, grey = "#63e68b", "#f87171", "#7dd3fc", "#fbbf24", "#cbd5e1"
+    exec_color = green if "success" in str(execution_status).lower() else red
+    val_color = green if validation_passed else (blue if no_records else red)
+    overall_color = green if success else (blue if no_records else red)
 
+    status_col1, status_col2, status_col3, status_col4 = st.columns(4)
     with status_col1:
-        st.markdown(
-            f'<div class="status-box"><div class="status-label">Execution</div>'
-            f'<div class="status-value">{execution_status}</div></div>',
-            unsafe_allow_html=True,
-        )
+        _status_box("Execution", execution_status, exec_color)
     with status_col2:
-        st.markdown(
-            f'<div class="status-box"><div class="status-label">Validation</div>'
-            f'<div class="status-value">{validation_text}</div></div>',
-            unsafe_allow_html=True,
-        )
+        _status_box("Validation", validation_text, val_color)
     with status_col3:
-        st.markdown(
-            f'<div class="status-box"><div class="status-label">Correction Applied</div>'
-            f'<div class="status-value">{correction_text}</div></div>',
-            unsafe_allow_html=True,
-        )
+        _status_box("Correction Applied", correction_text, amber if correction_applied else grey)
     with status_col4:
-        st.markdown(
-            f'<div class="status-box"><div class="status-label">Overall Status</div>'
-            f'<div class="status-value">{overall_status}</div></div>',
-            unsafe_allow_html=True,
-        )
+        _status_box("Overall Status", overall_status, overall_color)
 
     st.divider()
 
@@ -442,20 +523,8 @@ if run_button and params_ready:
     with result_tab:
         st.subheader("Final Result")
 
-        if (
-            spec.chart
-            and isinstance(result, pd.DataFrame)
-            and not result.empty
-            and spec.chart["x"] in result.columns
-            and spec.chart["y"] in result.columns
-        ):
-            chart_df = (
-                result[[spec.chart["x"], spec.chart["y"]]]
-                .dropna()
-                .set_index(spec.chart["x"])
-            )
-            if not chart_df.empty:
-                st.line_chart(chart_df)
+        _render_metrics(spec, result)
+        _render_trend_chart(spec, result)
 
         if isinstance(result, pd.DataFrame) and not result.empty:
             st.dataframe(result, width="stretch", hide_index=True)
