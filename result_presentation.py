@@ -1,10 +1,18 @@
-def present_result(question_type, params, generated_code, final_result):
+"""
+Result presentation module (console).
+
+Used by the command-line / pipeline path. The Streamlit UI in app.py renders
+its own richer presentation.
+"""
+
+
+def present_result(spec, params, generated_code, final_result):
     print("\n==============================")
     print(" FINAL RESULT PRESENTATION")
     print("==============================")
 
-    print("\nQuestion Type:")
-    print(question_type)
+    print("\nQuestion:")
+    print(f"  [{spec.id}] {spec.label}")
 
     print("\nUser Parameters:")
     print(params)
@@ -23,7 +31,6 @@ def present_result(question_type, params, generated_code, final_result):
 
     print("\nFinal Result:")
     result = final_result.get("result")
-
     if result is None:
         print("No result returned.")
     else:

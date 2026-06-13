@@ -1,32 +1,28 @@
+"""
+Validation module.
+
+Generic checks (execution succeeded, result is a non-empty DataFrame with the
+expected columns) plus an optional per-question rule supplied by the
+QuestionSpec (spec.extra_validate). No per-id branching lives here anymore.
+"""
+
 import pandas as pd
 
 
-EXPECTED_COLUMNS = {
-    1: ["HADM_ID", "LABEL", "VALUENUM", "VALUEUOM", "CHARTTIME", "FLAG"],
-    2: ["HADM_ID", "ITEMID", "LABEL", "VALUENUM", "VALUEUOM", "CHARTTIME"],
-    3: ["HADM_ID", "ITEMID", "LABEL", "VALUENUM", "VALUEUOM", "CHARTTIME"],
-    4: ["HADM_ID", "ITEMID", "LABEL", "CHARTTIME"],
-    5: ["HADM_ID", "ITEMID", "LABEL", "First Value", "First Time", "Last Value", "Last Time", "VALUEUOM", "Difference"]
-}
-
-
-def validate_result(question_type, execution_result):
+def validate_result(spec, execution_result):
     """
-    Validates whether the generated code produced the expected output.
-
     Parameters:
-        question_type (int): selected question number
-        execution_result (dict): result returned from execute_generated_code()
+        spec: a questions.QuestionSpec
+        execution_result (dict): output of execute_generated_code()
 
     Returns:
-        dict: validation status and details
+        dict with keys: valid (bool), message (str), details
     """
-
     if not execution_result.get("success"):
         return {
             "valid": False,
             "message": "Execution failed, so validation cannot pass.",
-            "details": execution_result.get("error")
+            "details": execution_result.get("error"),
         }
 
     result = execution_result.get("result")
@@ -35,91 +31,35 @@ def validate_result(question_type, execution_result):
         return {
             "valid": False,
             "message": "No result object was returned.",
-            "details": None
+            "details": None,
         }
 
     if isinstance(result, str):
         if result.strip() == "":
-            return {
-                "valid": False,
-                "message": "Result is an empty string.",
-                "details": None
-            }
-
-        return {
-            "valid": True,
-            "message": "String result returned successfully.",
-            "details": result
-        }
+            return {"valid": False, "message": "Result is an empty string.", "details": None}
+        return {"valid": True, "message": "String result returned successfully.", "details": result}
 
     if not isinstance(result, pd.DataFrame):
         return {
             "valid": False,
             "message": "Result is not a pandas DataFrame.",
-            "details": str(type(result))
+            "details": str(type(result)),
         }
 
-    expected_cols = EXPECTED_COLUMNS.get(question_type)
-
-    if expected_cols is None:
-        return {
-            "valid": False,
-            "message": "Unsupported question type for validation.",
-            "details": question_type
-        }
-
-    missing_cols = [col for col in expected_cols if col not in result.columns]
-
+    missing_cols = [col for col in spec.expected_columns if col not in result.columns]
     if missing_cols:
         return {
             "valid": False,
             "message": "Result is missing expected columns.",
-            "details": missing_cols
+            "details": missing_cols,
         }
 
     if result.empty:
-        return {
-            "valid": False,
-            "message": "Result DataFrame is empty.",
-            "details": None
-        }
+        return {"valid": False, "message": "Result DataFrame is empty.", "details": None}
 
-    if question_type == 1:
-        if "FLAG" in result.columns and not all(result["FLAG"] == "abnormal"):
-            return {
-                "valid": False,
-                "message": "Question 1 should return only abnormal results.",
-                "details": "Some rows are not marked as abnormal."
-            }
+    if spec.extra_validate is not None:
+        ok, message = spec.extra_validate(result)
+        if not ok:
+            return {"valid": False, "message": message, "details": None}
 
-    if question_type == 2:
-        if len(result) != 1:
-            return {
-                "valid": False,
-                "message": "Question 2 should return exactly one latest record.",
-                "details": f"Returned rows: {len(result)}"
-            }
-
-    if question_type == 3:
-        times = pd.to_datetime(result["CHARTTIME"], errors="coerce")
-        if not times.is_monotonic_increasing:
-            return {
-                "valid": False,
-                "message": "Question 3 trend results should be ordered by CHARTTIME ascending.",
-                "details": None
-            }
-
-    if question_type == 5:
-        if len(result) != 1:
-            return {
-                "valid": False,
-                "message": "Question 5 should return one comparison summary row.",
-                "details": f"Returned rows: {len(result)}"
-            }
-
-    return {
-        "valid": True,
-        "message": "Validation passed successfully.",
-        "details": None
-    }
-
+    return {"valid": True, "message": "Validation passed successfully.", "details": None}
