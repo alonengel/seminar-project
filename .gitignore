@@ -13,6 +13,12 @@ env/
 htmlcov/
 coverage.xml
 
+# Secrets
+.env
+*.key
+*.pem
+credentials.json
+
 # OS / editor
 .DS_Store
 Thumbs.db

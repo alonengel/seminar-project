@@ -4,10 +4,13 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import correction
 import data_prep
+import llm_client
+import presentation_agent
 import questions
 from main_pipeline import run_pipeline
-from question_router import EXAMPLES, route_question
+from question_router import EXAMPLES, route
 
 
 st.set_page_config(
@@ -155,6 +158,7 @@ QUESTION_HELP = {
     9: "Distinct lab tests that were ever flagged abnormal, with counts.",
     10: "Values of one lab test within a date range.",
     11: "All admissions recorded for one patient.",
+    12: "Abnormal vs normal counts for every admission in the dataset.",
 }
 
 _PARAM_NAMES = {
@@ -200,6 +204,11 @@ def _render_metrics(spec, result):
         cols[0].metric("Total tests", int(row["Total Tests"]))
         cols[1].metric("Abnormal", int(row["Abnormal"]))
         cols[2].metric("Normal", int(row["Normal"]))
+    elif spec.id == 12:
+        cols = st.columns(3)
+        cols[0].metric("Admissions", len(result))
+        cols[1].metric("Total abnormal", int(result["Abnormal"].sum()))
+        cols[2].metric("Total tests", int(result["Total Tests"].sum()))
     else:
         st.metric("Rows returned", len(result))
 
@@ -233,6 +242,135 @@ def _render_trend_chart(spec, result):
     st.altair_chart(chart)
 
 
+def _render_view_chart(result, view):
+    """Render a chart for a code-gen result from a presentation_agent spec."""
+    if not view or not isinstance(result, pd.DataFrame):
+        return
+    x_field, y_field = view.get("x"), view.get("y")
+    if x_field not in result.columns or y_field not in result.columns:
+        return
+    data = result[[x_field, y_field]].dropna()
+    if data.empty:
+        return
+    if view.get("chart") == "line":
+        if pd.api.types.is_datetime64_any_dtype(result[x_field]):
+            x_enc = alt.X(f"{x_field}:T", title=str(x_field))
+        else:
+            x_enc = alt.X(f"{x_field}:Q", title=str(x_field))
+        chart = alt.Chart(data).mark_line(point=True).encode(
+            x=x_enc, y=alt.Y(f"{y_field}:Q", title=str(y_field)), tooltip=list(data.columns)
+        )
+    else:
+        chart = alt.Chart(data).mark_bar().encode(
+            x=alt.X(f"{x_field}:N", title=str(x_field), sort="-y"),
+            y=alt.Y(f"{y_field}:Q", title=str(y_field)),
+            tooltip=list(data.columns),
+        )
+    st.altair_chart(chart.properties(width="container", height=320))
+
+
+def _render_codegen(output, question):
+    """Render the result of the experimental LLM code-generation pipeline."""
+    st.divider()
+    st.warning(
+        "Experimental: an LLM wrote and ran sandboxed pandas code to answer this. "
+        "The result is validated, but this is outside the curated question templates."
+    )
+
+    success = output.get("success")
+    result = output.get("result")
+    no_records = success and isinstance(result, pd.DataFrame) and result.empty
+
+    if success and not no_records:
+        st.markdown('<div class="success-banner">Analysis completed successfully</div>', unsafe_allow_html=True)
+    elif no_records:
+        st.markdown(
+            '<div class="info-banner">Code ran successfully, but no matching records were found.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="error-banner">Could not produce a valid result. See the details below.</div>',
+            unsafe_allow_html=True,
+        )
+
+    green, red, blue, grey = "#63e68b", "#f87171", "#7dd3fc", "#cbd5e1"
+    execution_status = output.get("execution", {}).get("status", "Unknown")
+    validation = output.get("validation", {})
+    validation_passed = validation.get("valid")
+    n_attempts = len(output.get("attempts", []))
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _status_box("Execution", execution_status, green if "success" in str(execution_status).lower() else red)
+    with col2:
+        _status_box("Validation", "Passed" if validation_passed else "Failed", green if validation_passed else (blue if no_records else red))
+    with col3:
+        _status_box("Attempts", n_attempts, blue)
+    with col4:
+        _status_box("Overall Status", output.get("status", "Unknown"), green if success else red)
+
+    st.divider()
+    result_tab, code_tab, plan_tab, attempts_tab = st.tabs(
+        ["Final Result", "Generated Code", "Plan", "Attempts"]
+    )
+
+    with result_tab:
+        st.subheader("Final Result")
+        if isinstance(result, pd.DataFrame) and not result.empty:
+            _render_view_chart(result, presentation_agent.suggest_view(result, question))
+            st.dataframe(result, width="stretch", hide_index=True)
+            csv = result.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="Download Result as CSV",
+                data=csv,
+                file_name="codegen_result.csv",
+                mime="text/csv",
+                width="stretch",
+            )
+        elif isinstance(result, pd.DataFrame) and result.empty:
+            st.info("No matching records were found.")
+        elif result is not None:
+            st.write(result)
+        else:
+            st.warning(validation.get("message", "No result was produced."))
+
+    with code_tab:
+        st.subheader("Generated Python Code")
+        st.code(output.get("final_code") or "# (no code generated)", language="python")
+
+    with plan_tab:
+        st.subheader("Plan")
+        st.write(output.get("plan") or "No explicit plan was provided.")
+
+    with attempts_tab:
+        st.subheader("Attempts")
+        st.write(output.get("attempts"))
+
+
+@st.dialog("No ready-made question matched")
+def _offer_advanced_dialog(question):
+    """Modal shown when a template mode cannot answer; offers to escalate to code-gen."""
+    st.write(
+        f"I could not map this to one of the {len(questions.QUESTION_REGISTRY)} "
+        "ready-made questions:"
+    )
+    st.info(question)
+    st.write(
+        "Switch to **Advanced (AI writes code)**? An LLM will write sandboxed pandas "
+        "code to answer it directly (experimental), instead of using a template."
+    )
+    col_yes, col_no = st.columns(2)
+    if col_yes.button("Run with Advanced", type="primary", width="stretch"):
+        st.session_state["codegen_request"] = question
+        st.session_state["pending_mode"] = "Advanced: AI writes code"
+        st.session_state.pop("escalation_text", None)
+        st.rerun()
+    if col_no.button("Cancel", width="stretch"):
+        st.session_state.pop("escalation_text", None)
+        st.rerun()
+
+
 # =========================
 # Header
 # =========================
@@ -264,6 +402,40 @@ with st.expander("Ask a clinical lab question in natural language (optional)"):
         "no free-form code is generated or run. Examples:"
     )
     st.markdown("\n".join(f"- {example}" for example in EXAMPLES))
+    _provider = llm_client.active_provider()
+    if _provider:
+        _MODE_OPTIONS = ["Rules only", "Rules, then AI", "Advanced: AI writes code"]
+        if "interp_mode" not in st.session_state:
+            st.session_state["interp_mode"] = "Rules, then AI"
+        # An accepted escalation moves the selection to Advanced for this run.
+        _pending = st.session_state.pop("pending_mode", None)
+        if _pending in _MODE_OPTIONS:
+            st.session_state["interp_mode"] = _pending
+        _mode_label = st.radio(
+            "Interpretation mode",
+            _MODE_OPTIONS,
+            horizontal=True,
+            key="interp_mode",
+            help=(
+                f"AI uses the LLM provider '{_provider}'. 'Rules only' is keyword matching "
+                "(no LLM). 'Rules, then AI' falls back to the LLM to pick a supported "
+                "question. 'Advanced' lets the model write sandboxed pandas code for "
+                "free-form questions (experimental)."
+            ),
+        )
+        nl_mode = {
+            "Rules only": "rules",
+            "Rules, then AI": "auto",
+            "Advanced: AI writes code": "codegen",
+        }[_mode_label]
+        if nl_mode == "codegen":
+            st.caption(
+                "Experimental: the LLM writes pandas code that runs in a restricted sandbox "
+                "(no imports, files, or network) and is validated before display."
+            )
+    else:
+        st.caption("AI is OFF (no API key in .env) - using rule-based routing. Add a key to enable LLM modes.")
+        nl_mode = "rules"
     nl_text = st.text_input(
         "Your question",
         key="nl_text",
@@ -299,6 +471,19 @@ spec = questions.get_question_by_label(question_label)
 
 _inputs = ", ".join(_PARAM_NAMES.get(p, p) for p in spec.params)
 st.caption(f"{QUESTION_HELP.get(spec.id, '')}  Inputs: {_inputs}.")
+
+# Demo only: offer to inject a typo so the rule-based correction loop is visible.
+demo_typo = False
+if spec.func.__name__ in correction.REVERSE_TYPOS:
+    demo_typo = st.checkbox(
+        "Demo: inject a typo to force a correction",
+        value=False,
+        help=(
+            "Deliberately misspells the generated function name so the first attempt "
+            "fails and the rule-based correction step fixes it - you will see two "
+            "attempts and 'Correction Applied: Yes'."
+        ),
+    )
 
 
 # =========================
@@ -395,20 +580,48 @@ params_ready = all(arg in params for arg in required_args)
 
 
 # A natural-language query, when submitted and understood, overrides the
-# structured selection and drives the same pipeline.
+# structured selection and drives the same pipeline. In "codegen" mode it hands
+# off to the guarded LLM code-generation pipeline. If a template mode cannot
+# match, we offer to escalate to code-gen (when an LLM provider is configured).
 nl_error = None
 nl_interpretation = None
+
+# A manual "Run Analysis" supersedes any earlier code-gen result.
+if run_button:
+    st.session_state.pop("codegen_output", None)
+
 if nl_submit and (nl_text or "").strip():
-    routed = route_question(nl_text)
-    if routed["matched"]:
-        spec = questions.get_question(routed["question_id"])
-        params = routed["params"]
-        params_ready = True
-        run_button = True
-        nl_interpretation = routed["message"]
-        display = {}
+    st.session_state.pop("codegen_output", None)
+    st.session_state.pop("escalation_text", None)
+    if nl_mode == "codegen":
+        st.session_state["codegen_request"] = nl_text
     else:
-        nl_error = routed["message"]
+        routed = route(nl_text, nl_mode)
+        if routed["matched"]:
+            spec = questions.get_question(routed["question_id"])
+            params = routed["params"]
+            params_ready = True
+            run_button = True
+            nl_interpretation = routed["message"] + f"  (via {routed.get('method', 'rules')})"
+            display = {}
+        else:
+            nl_error = routed["message"]
+            # Remember the unmatched question so the escalation dialog can persist
+            # across reruns (otherwise its buttons would never register a click).
+            if llm_client.active_provider():
+                st.session_state["escalation_text"] = nl_text
+
+# Keep the escalation dialog open (re-rendered each run) until the user acts on it.
+if st.session_state.get("escalation_text"):
+    _offer_advanced_dialog(st.session_state["escalation_text"])
+
+# Run code-gen when requested directly (codegen mode) or accepted via the dialog.
+codegen_request = st.session_state.pop("codegen_request", None)
+if codegen_request:
+    with st.spinner("The AI is writing and running sandboxed code..."):
+        st.session_state["codegen_output"] = route(codegen_request, "codegen")
+
+codegen_output = st.session_state.get("codegen_output")
 
 
 # =========================
@@ -443,6 +656,10 @@ with context_right:
             n_admissions = patient_rows["HADM_ID"].nunique()
             st.success(f"Patient {params['subject_id']} has {n_admissions} admission(s) in the dataset.")
 
+        elif not spec.params:
+            st.markdown('<div class="section-title">Scope</div>', unsafe_allow_html=True)
+            st.info("This question runs across the entire dataset - just click Run Analysis.")
+
         else:
             st.info("Select parameters to see context here.")
 
@@ -450,14 +667,17 @@ with context_right:
 # =========================
 # Run Pipeline
 # =========================
-if run_button and params_ready:
+if codegen_output is not None:
+    _render_codegen(codegen_output, nl_text)
+
+elif run_button and params_ready:
     st.divider()
 
     if nl_interpretation:
         st.success("Interpreted as: " + nl_interpretation)
 
     with st.spinner("Running analysis through the full pipeline..."):
-        final_result = run_pipeline(spec.id, params)
+        final_result = run_pipeline(spec.id, params, inject_typo=demo_typo)
 
     success = final_result.get("success")
     overall_status = final_result.get("status", "Unknown")

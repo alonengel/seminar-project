@@ -31,6 +31,8 @@ one-place change (see "Adding a new question" below).
 | `result_presentation.py` | Console presentation (used by the pipeline path) |
 | `main_pipeline.py` | Wires the modules into `run_pipeline(question_id, params)` |
 | `app.py` | Streamlit UI |
+| `question_router.py` / `llm_router.py` / `llm_client.py` | Optional natural-language routing (rule-based, with an optional LLM fallback) |
+| `sandbox.py` / `code_agent.py` / `agent_pipeline.py` / `presentation_agent.py` | Experimental LLM code-generation agent (see below) |
 
 ## Supported questions
 
@@ -45,6 +47,7 @@ one-place change (see "Adding a new question" below).
 9. List all abnormal flagged lab tests during an admission
 10. Show lab values within a date range during an admission
 11. List all admissions for a specific patient
+12. Count abnormal vs normal results across all admissions (dataset-wide aggregate)
 
 ## Setup
 
@@ -76,21 +79,51 @@ uv run python main_pipeline.py
 ## Natural-language input (optional)
 
 Besides the dropdown, you can type a question in plain English; it is routed
-(rule-based, no LLM) to one of the supported questions, for example:
+to one of the supported questions, for example:
 
 - "Show abnormal lab results for admission 145834"
 - "What is the latest chloride value for admission 199884?"
 - "Show hematocrit trend for admission 107521"
+- "Show abnormal lab results for all admissions" (dataset-wide aggregate)
 
-The router (`question_router.py`) only selects a predefined question and extracts
-its parameters - it never generates or runs free-form code. An LLM-assisted
-version is proposed as future work.
+The router only selects a predefined question and extracts its parameters - it
+never generates or runs free-form code. Routing is **rule-based by default**; set
+an LLM API key in `.env` (copy `.env.example`) to enable an optional
+**LLM-assisted** fallback (`llm_router.py`) that still maps only to the supported
+questions. The provider (Anthropic / OpenAI / Gemini) is chosen by which key is set.
+
+## Advanced: AI writes code (experimental)
+
+With an LLM key set, the natural-language box offers an extra **"Advanced: AI
+writes code"** mode. Inspired by [AgentCoder](https://arxiv.org/abs/2312.13010),
+a programmer agent (LLM) writes a pandas snippet for a free-form question, which
+runs in a generate -> execute -> validate -> refine loop:
+
+```
+question -> code_agent (LLM) -> sandbox.check_code (AST allowlist) -> sandbox exec -> validate_freeform -> retry on failure
+```
+
+It stays controlled: the snippet runs in `sandbox.py` with a restricted builtins
+namespace exposing only `pd` and a read-only `df` - no imports, file/network
+access, dunder/underscore attributes, or loops - in a worker thread with a soft
+timeout and a row cap, and the result must pass a deterministic validator before
+it is shown. The orchestration is lightweight and in-repo (no CrewAI/AutoGen).
+This mode is **off by default and experimental**; the 12-question registry
+remains the trusted default.
+
+When a template mode (Rules only / Rules, then AI) cannot match a question -
+e.g. *"last 10 abnormal results across the whole database"* - and an LLM key is
+set, a popup offers to re-run it in Advanced mode (or cancel); accepting it
+switches the mode selector to Advanced and runs the query automatically, so you
+are never left at a dead end.
 
 ## Adding a new question
 
 1. Add a data-prep function in `data_prep.py` that returns a `DataFrame`.
 2. Add a `QuestionSpec(...)` entry to `QUESTION_REGISTRY` in `questions.py`
    (id, label, params, func, expected_columns, optional validator/chart).
+   Dataset-wide questions take no input - use `params=[]` and a zero-argument
+   function (see Q12).
 3. If it needs a new input type, add an entry to `PARAM_DEFS`.
 
 No changes to `app.py`, `code_generation.py`, `validation.py`, or
@@ -99,13 +132,13 @@ No changes to `app.py`, `code_generation.py`, `validation.py`, or
 ## Tests
 
 Unit tests plus an end-to-end test (via Streamlit's `AppTest`) that exercises
-all 11 questions live in `tests/`:
+all 12 questions live in `tests/`:
 
 ```bash
 uv run pytest
 ```
 
-56 tests, 94% line coverage. See `docs/TEST_REPORT.md` for per-question expected
+105 tests, 93% line coverage. See `docs/TEST_REPORT.md` for per-question expected
 results and `docs/assets/screenshots/` for a UI screenshot of each question.
 
 ## Project documentation

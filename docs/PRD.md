@@ -35,10 +35,12 @@ allowing free-text or unbounded medical questions.
 
 **In scope:** a fixed registry of predefined questions; the cleaned MIMIC-III
 merge of ADMISSIONS + LABEVENTS (+ lab labels); a Streamlit UI; CSV export.
+Optional, off-by-default LLM features: natural-language routing to a template and
+an experimental guarded code-generation mode (sandboxed; see the decision log).
 
-**Out of scope:** free-text/unbounded questions, multi-table ad-hoc SQL,
-external/LLM API calls, writes back to the dataset, authentication, and
-multi-user state.
+**Out of scope (by default):** free-text/unbounded questions as the primary path,
+multi-table ad-hoc SQL, unsandboxed code execution, writes back to the dataset,
+authentication, and multi-user state.
 
 ## 5. Functional requirements
 
@@ -77,6 +79,7 @@ multi-user state.
 | 9 | List distinct abnormal lab tests | Admission |
 | 10 | Lab values within a date range | Admission, Lab Test, Date range |
 | 11 | All admissions for a patient | Patient |
+| 12 | Abnormal vs normal counts across all admissions | None (dataset-wide) |
 
 ## 8. Assumptions, dependencies, constraints
 
@@ -96,12 +99,18 @@ The system includes a controlled AI/NLP question-routing layer
 (`question_router.py`) that maps a natural-language clinical lab question into one
 of the supported question templates and extracts its parameters (admission ID, lab
 test, patient ID, dates). The router only selects a predefined question; it never
-generates or executes free-form code. In the current MVP this layer is rule-based
-(keyword and pattern matching).
+generates or executes free-form code, and it rejects anything it cannot map.
 
-The system does not use an LLM in the current MVP. This was an intentional design
-decision because the supported questions are predefined, and template-based code
-generation provides more reliable, testable, and reproducible behavior. An
-LLM-based natural language interface (and an LLM-assisted version of the router) is
-proposed as future work; it can replace the rule-based router without changing the
-downstream pipeline.
+Two routing modes share the same validation (`question_router.build_route_result`):
+
+- **Rule-based** (`question_router.route_question`): keyword/pattern matching - the
+  default, always available, fast, and deterministic.
+- **LLM-assisted** (`llm_router.py`, optional): used as a fallback when the rules
+  cannot match and an LLM provider key is configured. The model returns ONLY a JSON
+  object choosing a question id + parameters, which is parsed and validated against
+  the registry. The LLM never generates code.
+
+LLM support is OFF by default - with no API key the system uses only the rule-based
+router. The provider (Anthropic / OpenAI / Gemini) is selected by which key is set
+(see `.env.example`). This keeps behaviour reliable, testable, and reproducible
+while allowing richer natural-language understanding when a key is provided.

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from validation import validate_result
+from validation import validate_freeform_result, validate_result
 
 
 def _spec(expected_columns, extra_validate=None):
@@ -60,3 +60,34 @@ def test_extra_validate_can_fail():
 def test_string_result_is_valid():
     out = validate_result(_spec(["A"]), _exec_ok("some text"))
     assert out["valid"]
+
+
+# --- freeform validator (LLM code-gen path) ---
+def test_freeform_dataframe_passes():
+    out = validate_freeform_result(pd.DataFrame([{"A": 1}]))
+    assert out["valid"]
+
+
+def test_freeform_empty_dataframe_is_valid_no_records():
+    out = validate_freeform_result(pd.DataFrame(columns=["A"]))
+    assert out["valid"] and out["details"] == "empty"
+
+
+def test_freeform_series_and_scalar_pass():
+    assert validate_freeform_result(pd.Series([1, 2, 3]))["valid"]
+    assert validate_freeform_result(42)["valid"]
+    assert validate_freeform_result("text")["valid"]
+
+
+def test_freeform_none_fails():
+    assert not validate_freeform_result(None)["valid"]
+
+
+def test_freeform_unsupported_type_fails():
+    out = validate_freeform_result({"a": 1})
+    assert not out["valid"]
+
+
+def test_freeform_truncation_note():
+    out = validate_freeform_result(pd.DataFrame({"A": range(10)}), max_rows=10)
+    assert out["valid"] and "first 10" in out["message"]

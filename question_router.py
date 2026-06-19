@@ -2,10 +2,13 @@
 Controlled natural-language question router.
 
 Maps a free-text clinical lab question to exactly ONE of the supported question
-templates (by id) and extracts its parameters. This is deliberately rule-based /
-keyword matching: it never generates free-form code, and it can only route to
-the predefined questions in the registry. A full LLM-based natural-language
-interface is proposed as future work.
+templates (by id) and extracts its parameters. It can only route to the
+predefined questions in the registry and never generates free-form code.
+
+`route_question` is rule-based / keyword matching. `smart_route` tries the rules
+first and, if they cannot match and an LLM provider is configured, falls back to
+the optional LLM-assisted router (`llm_router.py`). Both share
+`build_route_result` so validation is identical.
 """
 
 import inspect
@@ -89,6 +92,8 @@ def _classify(text, has_lab):
     if _has_word(text, "summary", "statistics", "statistic", "average", "mean", "minimum", "maximum", "min", "max"):
         return 6
     if _has(text, "abnormal"):
+        if _has(text, "all admission", "all the admission", "every admission", "across admission", "each admission"):
+            return 12
         if _has(text, "count", "how many", "number of", "vs normal", "versus normal", "normal vs"):
             return 7
         if _has(text, "which test", "what test", "list", "distinct"):
@@ -99,33 +104,36 @@ def _classify(text, has_lab):
     return None
 
 
-def route_question(text):
-    """Return {matched, question_id, params, lab_label, message}."""
-    cleaned = (text or "").lower().strip()
-    if not cleaned:
-        return _fail("Please type a question.")
+def build_route_result(question_id, *, hadm_id=None, subject_id=None, itemid=None,
+                       lab_label=None, dates=None, method="rules"):
+    """Validate extracted entities against the registry and build the result dict.
 
-    hadm_id = _extract_hadm(cleaned)
-    subject_id = _extract_subject(cleaned)
-
+    Shared by the rule-based router and the LLM router so both enforce the same
+    rules: known admission/patient IDs, a supported question, and the required
+    parameters for that question.
+    """
     if hadm_id is not None and hadm_id not in _HADM_IDS:
         return _fail(f"Admission {hadm_id} was not found in the dataset.")
     if subject_id is not None and subject_id not in _SUBJECT_IDS:
         return _fail(f"Patient {subject_id} was not found in the dataset.")
 
-    itemid, lab_label = _resolve_lab(cleaned, hadm_id)
-    question_id = _classify(cleaned, has_lab=itemid is not None)
-
     if question_id is None:
         return _fail("Could not recognise the question. Try wording it like the examples, or use the dropdown above.")
+    try:
+        spec = questions.get_question(int(question_id))
+    except (ValueError, TypeError):
+        return _fail(f"Unsupported question id: {question_id}.")
 
-    spec = questions.get_question(question_id)
     needs = set(inspect.signature(spec.func).parameters)
     params = {}
 
     if "hadm_id" in needs:
         if hadm_id is None:
-            return _fail("Please include an admission ID, for example 'admission 145834'.")
+            return _fail(
+                "This question is answered per-admission - please name an admission ID "
+                "(e.g. 'admission 145834'). For a dataset-wide view, ask for "
+                "'abnormal results across all admissions'."
+            )
         params["hadm_id"] = hadm_id
     if "subject_id" in needs:
         if subject_id is None:
@@ -139,8 +147,7 @@ def route_question(text):
             )
         params["itemid"] = itemid
     if "start_time" in needs or "end_time" in needs:
-        dates = re.findall(r"\d{4}-\d{2}-\d{2}", cleaned)
-        if len(dates) < 2:
+        if not dates or len(dates) < 2:
             return _fail("Please include a start and end date (YYYY-MM-DD).")
         params["start_time"], params["end_time"] = dates[0], dates[1]
 
@@ -151,12 +158,76 @@ def route_question(text):
         detail.append(f"patient {params['subject_id']}")
     if lab_label and "itemid" in params:
         detail.append(f"lab {lab_label} (ITEMID {params['itemid']})")
-    message = f"[{question_id}] {spec.label}" + (" | " + ", ".join(detail) if detail else "")
+    message = f"[{spec.id}] {spec.label}" + (" | " + ", ".join(detail) if detail else "")
 
     return {
         "matched": True,
-        "question_id": question_id,
+        "question_id": spec.id,
         "params": params,
         "lab_label": lab_label,
         "message": message,
+        "method": method,
     }
+
+
+def route_question(text):
+    """Rule-based routing. Returns {matched, question_id, params, lab_label, message, method}."""
+    cleaned = (text or "").lower().strip()
+    if not cleaned:
+        return _fail("Please type a question.")
+
+    hadm_id = _extract_hadm(cleaned)
+    subject_id = _extract_subject(cleaned)
+    itemid, lab_label = _resolve_lab(cleaned, hadm_id)
+    question_id = _classify(cleaned, has_lab=itemid is not None)
+    dates = re.findall(r"\d{4}-\d{2}-\d{2}", cleaned)
+
+    return build_route_result(
+        question_id, hadm_id=hadm_id, subject_id=subject_id,
+        itemid=itemid, lab_label=lab_label, dates=dates, method="rules",
+    )
+
+
+def smart_route(text):
+    """Rule-based routing first; fall back to the LLM router only if the rules
+    cannot match and a provider key is configured. Always controlled to the
+    supported templates."""
+    result = route_question(text)
+    if result["matched"] or not (text or "").strip():
+        return result
+    try:
+        import llm_router
+    except Exception:
+        return result
+    if not llm_router.llm_available():
+        return result
+    llm_result = llm_router.llm_route_question(text)
+    if llm_result["matched"]:
+        return llm_result
+    # Both failed: prefer the LLM's specific reason, unless the LLM call errored.
+    if "LLM interpretation failed" in llm_result.get("message", ""):
+        return result
+    return llm_result
+
+
+def route(text, mode="auto"):
+    """Dispatch routing by mode: 'rules' (no LLM), 'llm' (always LLM),
+    'auto' (rules first, LLM fallback), or 'codegen' (guarded LLM code generation).
+
+    Note: 'codegen' returns the agent-pipeline result shape (success/result/...),
+    not a routing dict; it is used only by the experimental UI mode.
+    """
+    if mode == "rules":
+        return route_question(text)
+    if mode == "codegen":
+        from agent_pipeline import run_codegen
+        return run_codegen(text)
+    if mode == "llm":
+        try:
+            import llm_router
+        except Exception:
+            return _fail("The LLM router is unavailable.")
+        if not llm_router.llm_available():
+            return _fail("LLM is not configured. Set an API key in .env, or use Rules mode.")
+        return llm_router.llm_route_question(text)
+    return smart_route(text)

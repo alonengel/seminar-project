@@ -8,9 +8,10 @@ The Clinical Lab Analysis System answers a fixed set of predefined clinical
 laboratory questions over the MIMIC-III hospital dataset. For each question the
 system **generates executable Python code, runs it on a cleaned dataset,
 validates the output, applies a rule-based correction when needed, and presents
-the result** together with the generated code. It supports **11 question types**
-and an optional **controlled natural-language layer** that routes free-text
-questions to those templates. No LLM is used in the MVP.
+the result** together with the generated code. It supports **12 question types**
+(including a dataset-wide aggregate) and an optional **controlled natural-language
+layer** that routes free-text questions to those templates. An optional, controlled
+LLM-assisted routing mode is available (off by default).
 
 ## 2. Problem and goal
 
@@ -28,8 +29,12 @@ questions about an admission, a lab test, or a patient.
 ADMISSIONS + LABEVENTS (with readable lab labels); a Streamlit UI; CSV export; a
 controlled (rule-based) natural-language entry point.
 
-**Out of scope:** free-text/unbounded questions, multi-table ad-hoc SQL,
-LLM-generated code, writes to the dataset, authentication.
+An **optional, experimental** guarded LLM code-generation mode (sandboxed) extends
+this for free-form questions; it is off by default (see section 4.1).
+
+**Out of scope (by default):** free-text/unbounded questions as the primary path,
+multi-table ad-hoc SQL, unsandboxed code execution, writes to the dataset,
+authentication.
 
 ## 4. System architecture
 
@@ -78,8 +83,29 @@ flowchart TD
 | `result_presentation.py` | Console presentation |
 | `main_pipeline.py` | Wire the modules into `run_pipeline(question_id, params)` |
 | `app.py` | Streamlit UI |
+| `sandbox.py` | AST allowlist + restricted-builtins exec for generated code |
+| `code_agent.py` | Programmer agent: LLM writes a pandas snippet for a free-text question |
+| `agent_pipeline.py` | Guarded code-gen loop: programmer -> sandbox -> validator -> refine |
+| `presentation_agent.py` | Suggests a chart for a code-gen result (rule-based, optional LLM) |
 
 See `docs/PLAN.md` for the single-run sequence diagram and design decisions.
+
+### 4.1 Optional guarded code-generation agent (experimental)
+
+With an LLM key set, an "Advanced: AI writes code" mode answers free-form
+questions outside the registry. Inspired by AgentCoder (arXiv 2312.13010), a
+programmer agent (`code_agent.py`) writes a pandas snippet, which runs in a
+generate -> execute -> validate -> refine loop (`agent_pipeline.py`, mirroring the
+existing correction loop). It stays controlled: `sandbox.py` enforces an AST
+allowlist (no imports, dunder/underscore attributes, file/network/eval methods, or
+loops) and executes with a restricted `__builtins__` exposing only `pd` and a
+read-only `df`, in a worker thread with a soft timeout and a row cap; a
+deterministic validator (`validation.validate_freeform_result`) gates the result
+before display. Orchestration is lightweight and in-repo - CrewAI/AutoGen/LangGraph
+were considered and rejected, since extra agents/frameworks mainly add token and
+coordination overhead (a critique AgentCoder itself makes of MetaGPT/ChatDev). The
+mode is off by default and clearly labelled experimental; the 12-question registry
+remains the trusted core.
 
 ## 5. Supported questions
 
@@ -96,6 +122,7 @@ See `docs/PLAN.md` for the single-run sequence diagram and design decisions.
 | 9 | List distinct abnormal lab tests | Admission |
 | 10 | Lab values within a date range | Admission, Lab test, Date range |
 | 11 | All admissions for a patient | Patient |
+| 12 | Abnormal vs normal counts across all admissions | None (dataset-wide) |
 
 ## 6. Dataset
 
@@ -108,19 +135,23 @@ VALUEUOM, FLAG, SUBJECT_ID_y, ADMITTIME, DISCHTIME, DIAGNOSIS, LABEL`.
 The file is kept out of git because of its size (>100 MB); see
 `docs/decisions/decision-log.md` for how to obtain it.
 
-## 7. Controlled AI / NLP (no LLM)
+## 7. Controlled AI / NLP (optional LLM)
 
-The system includes a controlled AI/NLP question-routing layer
-(`question_router.py`) that maps a natural-language question to exactly one
-supported template and extracts its parameters. The router only selects a
-predefined question - it never generates or executes free-form code, and it
-rejects anything it cannot map (including unknown admission/patient IDs).
+The system includes a controlled AI/NLP question-routing layer that maps a
+natural-language question to exactly one supported template and extracts its
+parameters. The router only selects a predefined question - it never generates or
+executes free-form code, and it rejects anything it cannot map (including unknown
+admission/patient IDs).
 
-The system does not use an LLM in the current MVP. This was an intentional
-design decision: the supported questions are predefined, and template-based code
-generation provides more reliable, testable, and reproducible behavior. An
-LLM-based natural-language interface (and an LLM-assisted router) is proposed as
-future work and can replace the rule-based router without changing the pipeline.
+Routing has two modes that share the same validation
+(`question_router.build_route_result`): a default **rule-based** router
+(`route_question`, always available) and an optional **LLM-assisted** router
+(`llm_router.py`) used as a fallback when the rules cannot match and an LLM
+provider key is configured. The LLM returns only a JSON question id + parameters
+(validated against the registry); it never generates code. LLM support is OFF by
+default (no key -> rule-based only); the provider (Anthropic / OpenAI / Gemini) is
+chosen by which key is set in `.env`. This keeps behaviour reliable and
+reproducible while allowing richer language understanding when desired.
 
 ## 8. How code generation, validation, and correction work
 
@@ -148,9 +179,9 @@ question types execute and validate correctly, for example:
 | 4 | HADM 158675 | All lab tests listed |
 | 5 | HADM 177047, pO2 | First 82, last 103, difference +21 mm Hg |
 
-**Automated tests:** 72 tests pass with ~94% line coverage (85% gate enforced in
+**Automated tests:** 105 tests pass with ~93% line coverage (85% gate enforced in
 `pyproject.toml`), including unit tests for every module and an end-to-end test
-exercising all 11 questions plus natural-language routing and edge cases. See
+exercising all 12 questions plus natural-language routing and edge cases. See
 `docs/TEST_REPORT.md` and the per-question screenshots in `docs/assets/screenshots/`.
 
 ## 10. User interface

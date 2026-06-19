@@ -68,7 +68,7 @@ def test_app_loads_with_all_questions():
     at = _fresh_app()
     assert not at.exception
     assert "Clinical Lab Analysis System" in _markdown(at)
-    assert len(at.selectbox[1].options) == len(questions.QUESTION_REGISTRY) == 11
+    assert len(at.selectbox[1].options) == len(questions.QUESTION_REGISTRY) == 12
 
 
 @pytest.mark.parametrize("spec", questions.QUESTION_REGISTRY, ids=lambda s: f"Q{s.id}")
@@ -127,6 +127,20 @@ def test_q8_happy_path_with_abnormal_lab():
     assert result_df is not None and (result_df["FLAG"] == "abnormal").all()
 
 
+def test_demo_typo_checkbox_recovers_via_correction():
+    """The demo toggle injects a typo; success proves the correction loop repaired it."""
+    at = _fresh_app()
+    checkbox = next((c for c in at.checkbox if "typo" in c.label.lower()), None)
+    assert checkbox is not None, (
+        "demo typo checkbox should appear for the default (demoable) question; "
+        "checkboxes=" + str([c.label for c in at.checkbox])
+    )
+    checkbox.set_value(True).run()
+    _run(at)
+    assert not at.exception
+    assert "Analysis completed successfully" in _markdown(at)
+
+
 def test_q8_no_records_edge_case_is_graceful():
     """A lab with no abnormal readings shows the info banner, not an error."""
     spec = questions.get_question(8)
@@ -142,7 +156,7 @@ def test_category_filter_narrows_question_list():
     at.selectbox[0].set_value("Patient overview").run()
     assert not at.exception
     options = at.selectbox[1].options
-    assert len(options) < 11
+    assert len(options) < len(questions.QUESTION_REGISTRY)
     assert all(("admission" in o.lower()) or ("patient" in o.lower()) for o in options)
 
 
@@ -166,3 +180,110 @@ def test_natural_language_unrecognized_query_is_handled():
     at.run()
     assert not at.exception
     assert "Could not recognise" in _all_text(at)
+
+
+def test_natural_language_all_admissions_routes_to_aggregate():
+    """The 'all admissions' ask now maps to Q12 and runs, instead of demanding an ID."""
+    at = _fresh_app()
+    at.text_input[0].set_value("show me the abnormal lab results for all the admissions").run()
+    button = next(b for b in at.button if b.label == "Interpret & Run")
+    button.click()
+    at.run()
+    assert not at.exception
+    text = _all_text(at)
+    assert "Interpreted as:" in text
+    assert "across all admissions" in text
+    assert "Analysis completed successfully" in text
+
+
+# --- experimental LLM code-generation mode (offline; complete() patched) ---
+def _codegen_app(monkeypatch, code_reply):
+    """Build the app with a provider key set and llm_client.complete patched to
+    return a fixed code snippet, then select the 'Advanced: AI writes code' mode."""
+    import llm_client
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "real-key-123")
+    monkeypatch.setattr(llm_client, "complete", lambda system, user, max_tokens=None: code_reply)
+
+    at = AppTest.from_file(APP_PATH, default_timeout=240)
+    at.run()
+    at.radio[0].set_value("Advanced: AI writes code").run()
+    return at
+
+
+def _ask_codegen(at, question):
+    at.text_input[0].set_value(question).run()
+    button = next(b for b in at.button if b.label == "Interpret & Run")
+    button.click()
+    at.run()
+    return at
+
+
+def test_codegen_mode_success_line_chart(monkeypatch):
+    code = "result = df[df['FLAG'] == 'abnormal'][['CHARTTIME', 'VALUENUM', 'LABEL']].head(20)"
+    at = _codegen_app(monkeypatch, code)
+    _ask_codegen(at, "show abnormal values over time")
+    assert not at.exception
+    text = _all_text(at)
+    assert "Analysis completed successfully" in text
+    assert len(at.dataframe) >= 1
+    assert any("result =" in (c or "") for c in _codes(at))
+
+
+def test_codegen_mode_success_bar_chart(monkeypatch):
+    code = "result = df.groupby('HADM_ID').size().reset_index(name='abnormal_count').head(10)"
+    at = _codegen_app(monkeypatch, code)
+    _ask_codegen(at, "count rows per admission")
+    assert not at.exception
+    assert "Analysis completed successfully" in _all_text(at)
+
+
+def test_codegen_mode_blocks_malicious_code(monkeypatch):
+    code = "import os\nresult = os.getcwd()"
+    at = _codegen_app(monkeypatch, code)
+    _ask_codegen(at, "read a file from disk")
+    assert not at.exception
+    text = _all_text(at)
+    assert "Could not produce a valid result" in text
+    assert any("import os" in (c or "") for c in _codes(at))
+
+
+def test_codegen_via_escalation_request(monkeypatch):
+    """Accepting the escalation dialog (which sets codegen_request) runs code-gen."""
+    import llm_client
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "real-key-123")
+    monkeypatch.setattr(llm_client, "complete", lambda system, user, max_tokens=None: "result = df.head(3)")
+    at = AppTest.from_file(APP_PATH, default_timeout=240)
+    at.session_state["codegen_request"] = "last 10 abnormal results in the whole database"
+    at.run()
+    assert not at.exception
+    assert "Analysis completed successfully" in _all_text(at)
+    assert any("result =" in (c or "") for c in _codes(at))
+
+
+def test_escalation_dialog_runs_advanced_and_switches_mode(monkeypatch):
+    """A template-mode failure opens the dialog; 'Run with Advanced' runs code-gen and flips the mode."""
+    import llm_client
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "real-key-123")
+    monkeypatch.setattr(llm_client, "complete", lambda system, user, max_tokens=None: "result = df.head(3)")
+    at = AppTest.from_file(APP_PATH, default_timeout=240)
+    at.run()
+    at.radio[0].set_value("Rules only").run()
+    at.text_input[0].set_value("last 10 abnormal results across the whole database").run()
+    next(b for b in at.button if b.label == "Interpret & Run").click()
+    at.run()
+    assert not at.exception
+
+    advanced = next((b for b in at.button if b.label == "Run with Advanced"), None)
+    assert advanced is not None, (
+        "escalation dialog should offer 'Run with Advanced'; buttons="
+        + str([b.label for b in at.button])
+    )
+    advanced.click()
+    at.run()
+    assert not at.exception
+    assert "Analysis completed successfully" in _all_text(at)
+    assert any("result =" in (c or "") for c in _codes(at))
+    assert at.radio[0].value == "Advanced: AI writes code"

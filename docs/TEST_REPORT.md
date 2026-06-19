@@ -4,10 +4,11 @@ Automated tests for the Clinical Lab Analysis System.
 
 ## Summary
 
-- **56 tests pass**, **0 failures**.
+- **159 tests pass**, **0 failures**.
 - **94% line coverage** (target: 85%).
-- Layers covered: unit tests for every logic module + an end-to-end test for the
-  Streamlit UI that exercises **all 11 questions**.
+- Layers covered: unit tests for every logic module (including the code-gen
+  sandbox, programmer agent, and orchestration loop) + an end-to-end test for the
+  Streamlit UI that exercises **all 12 questions** and the experimental code-gen mode.
 
 Run them with:
 
@@ -22,15 +23,22 @@ uv run pytest
 
 | Module | Coverage |
 | --- | --- |
+| `agent_pipeline.py` | 100% |
 | `code_generation.py` | 100% |
 | `correction.py` | 100% |
 | `execution.py` | 100% |
+| `llm_router.py` | 100% |
 | `result_presentation.py` | 100% |
-| `validation.py` | 96% |
+| `sandbox.py` | 99% |
+| `validation.py` | 95% |
 | `data_prep.py` | 95% |
+| `code_agent.py` | 94% |
+| `app.py` | 93% |
 | `main_pipeline.py` | 93% |
-| `app.py` | 92% |
-| `questions.py` | 92% |
+| `presentation_agent.py` | 92% |
+| `questions.py` | 91% |
+| `question_router.py` | 91% |
+| `llm_client.py` | 87% |
 | **Total** | **94%** |
 
 ## End-to-end results per question
@@ -53,6 +61,7 @@ and in a real headless Chromium browser (screenshots in `docs/assets/screenshots
 | 9 | Distinct abnormal tests | Admission | Table of tests with abnormal counts | Pass |
 | 10 | Values in a date range | Admission, Lab Test, Date range | Time-sorted table + line chart | Pass |
 | 11 | All admissions for a patient | Patient ID | Table of the patient's admissions | Pass |
+| 12 | Abnormal vs normal across all admissions | (none - dataset-wide) | One row per admission: total/abnormal/normal, most abnormal first | Pass |
 
 ## Edge cases covered
 
@@ -64,6 +73,15 @@ and in a real headless Chromium browser (screenshots in `docs/assets/screenshots
 - **Missing data**: data functions return empty frames for unknown admissions/patients.
 - **Validation failures**: execution error, `None` result, non-DataFrame, missing
   columns, empty frame, and failing per-question rules are all handled.
+- **Dataset-wide aggregate (Q12)**: per-admission counts are cross-checked against the
+  single-admission view (Q7), and `Abnormal + Normal == Total Tests` is validated for
+  every row. The "all admissions" natural-language query routes here (rules and LLM)
+  instead of demanding an admission ID.
+- **Code-gen sandbox (experimental mode)**: imports, `open`, dunder/underscore
+  attributes, file/network/eval methods (`to_csv`, `query`, ...), loops, and syntax
+  errors are all rejected by the AST allowlist; runtime errors, timeouts, and row
+  caps are handled. The agent loop is tested end-to-end with a fake LLM: it refines
+  after a runtime error, blocks malicious code, and degrades gracefully on LLM errors.
 
 ## Example (question 11, patient overview)
 

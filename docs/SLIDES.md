@@ -19,7 +19,7 @@ Team: Hala Hillou, Dana Nmarny, Anas Khoury, Alon Engel
 - Takes one predefined question + parameters.
 - Generates executable Python code, runs it, validates, corrects if needed,
   presents the result and the generated code.
-- 11 supported question types.
+- 12 supported question types.
 
 ## Slide 4 - Architecture
 - Layered, registry-driven pipeline:
@@ -27,21 +27,22 @@ Team: Hala Hillou, Dana Nmarny, Anas Khoury, Alon Engel
 - One question registry is the single source of truth (UI, generation,
   validation, pipeline all read from it).
 
-## Slide 5 - The 11 questions
+## Slide 5 - The 12 questions
 - Abnormal results, latest value, trend, all tests, first-vs-last, summary stats,
   abnormal vs normal counts, abnormal-by-test, distinct abnormal tests,
   date-range values, patient admissions.
+- Plus a dataset-wide aggregate: abnormal vs normal counts across all admissions.
 
 ## Slide 6 - Code generation, validation, correction
 - Template generation: `result = get_lab_trend(107521, 51221)`.
 - Validation: expected columns + per-question rules.
 - Correction: bounded rule-based retry for generated-code errors.
 
-## Slide 7 - Controlled AI / NLP (no LLM)
+## Slide 7 - Controlled AI / NLP (optional LLM)
 - Optional natural-language box routes free text to ONE supported template.
-- Rule-based; never generates free-form code; rejects unmappable input.
-- No LLM in the MVP (intentional: reliable, testable, reproducible). LLM-assisted
-  router proposed as future work.
+- Never generates free-form code; rejects unmappable input.
+- Rule-based by default; optional LLM-assisted fallback (Anthropic/OpenAI/Gemini)
+  when an API key is set - the model only selects a template.
 
 ## Slide 8 - User interface
 - Question selection + dynamic inputs + help captions.
@@ -54,7 +55,7 @@ Team: Hala Hillou, Dana Nmarny, Anas Khoury, Alon Engel
 
 ## Slide 10 - Quality / engineering
 - Modular design, single source of truth, docstrings.
-- 72 automated tests, ~94% coverage (85% gate); managed with uv; clean git history.
+- 105 automated tests, ~93% coverage (85% gate); managed with uv; clean git history.
 
 ## Slide 11 - Demo
 - Structured trend question -> chart.

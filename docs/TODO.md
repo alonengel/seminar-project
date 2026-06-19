@@ -19,7 +19,7 @@ Status legend: [x] done, [~] in progress, [ ] not started.
       fixed result banner
 - [x] Cleanup: remove mock code; add `requirements.txt` and `README.md`
 - [x] Fix bordered-card rendering and pin a dark theme
-- [x] Test suite: unit + per-question end-to-end (56 tests, 94% coverage)
+- [x] Test suite: unit + per-question end-to-end (105 tests, 93% coverage)
 - [x] Per-question browser screenshots and `docs/TEST_REPORT.md`
 - [x] Project docs: `PRD.md`, `PLAN.md`, `TODO.md`
 
@@ -31,10 +31,19 @@ Status legend: [x] done, [~] in progress, [ ] not started.
 - [x] Architecture diagram (mermaid in `docs/PLAN.md` and `docs/REPORT.md`)
 - [ ] Add the dataset download link in `docs/decisions/decision-log.md` (team to fill)
 
+## Phase 4 - Follow-ups
+
+- [x] Add a dataset-wide aggregate question (Q12): abnormal vs normal counts
+      across all admissions (no inputs; param-less registry entry)
+- [x] Route "all admissions" natural-language queries to Q12 (rules + LLM)
+- [x] Clearer per-admission routing message that points to the aggregate
+- [x] Tests + docs updated for 12 questions (105 tests, 93% coverage)
+
 ## Optional / nice-to-have (see `guidelines-gap-analysis.md`)
 
+- [x] Optional LLM-assisted natural-language routing (`llm_client.py`, `llm_router.py`)
+- [x] `pyproject.toml` + `uv` adopted
 - [ ] Add a `LICENSE` file
-- [ ] Add `pyproject.toml` (build + test/coverage config); optionally adopt `uv`
 - [ ] Split `app.py` into smaller UI helper modules
 
 ## Ownership

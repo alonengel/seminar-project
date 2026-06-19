@@ -11,6 +11,22 @@ import re
 from execution import execute_generated_code
 from validation import validate_result
 
+# Known function-name typos a flakier generator might emit, and their fixes.
+# Matched on whole identifiers (word boundaries) so a wrong name that is a prefix
+# of a valid one - e.g. "get_abnormal_result" inside "get_abnormal_results_for_lab"
+# - is not accidentally rewritten.
+TYPO_FIXES = {
+    "get_lates_lab_value": "get_latest_lab_value",
+    "get_abnormal_result": "get_abnormal_results",
+    "get_lab_trends": "get_lab_trend",
+    "get_all_lab_test": "get_all_lab_tests",
+    "compare_first_last_value": "compare_first_last_values",
+}
+
+# Correct name -> a typo of it; used by the UI "inject a typo" demo to force a
+# first-attempt failure that the correction loop then repairs.
+REVERSE_TYPOS = {right: wrong for wrong, right in TYPO_FIXES.items()}
+
 
 def correct_generated_code(generated_code, validation_result, execution_result):
     """Applies simple rule-based corrections to generated code."""
@@ -24,18 +40,7 @@ def correct_generated_code(generated_code, validation_result, execution_result):
     if validation_result.get("details"):
         error_text += " " + str(validation_result.get("details"))
 
-    # Common function-name typo corrections. Matched on whole identifiers
-    # (word boundaries) so a wrong name that is a prefix of a valid one - e.g.
-    # "get_abnormal_result" inside "get_abnormal_results_for_lab" - is not
-    # accidentally rewritten.
-    typo_fixes = {
-        "get_lates_lab_value": "get_latest_lab_value",
-        "get_abnormal_result": "get_abnormal_results",
-        "get_lab_trends": "get_lab_trend",
-        "get_all_lab_test": "get_all_lab_tests",
-        "compare_first_last_value": "compare_first_last_values",
-    }
-    for wrong, right in typo_fixes.items():
+    for wrong, right in TYPO_FIXES.items():
         corrected_code = re.sub(rf"\b{re.escape(wrong)}\b", right, corrected_code)
 
     return corrected_code
