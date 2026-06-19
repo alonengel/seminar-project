@@ -83,6 +83,21 @@ def test_get_patient_admissions_renames_subject():
     assert "DIAGNOSIS" in result.columns
 
 
+def test_get_abnormal_counts_all_admissions_summary():
+    result = data_prep.get_abnormal_counts_all_admissions()
+    assert not result.empty
+    assert list(result.columns) == ["HADM_ID", "Total Tests", "Abnormal", "Normal"]
+    # one row per admission, counts add up, sorted by most abnormal first
+    assert result["HADM_ID"].is_unique
+    assert (result["Abnormal"] + result["Normal"] == result["Total Tests"]).all()
+    assert result["Abnormal"].is_monotonic_decreasing
+    # the dataset-wide row for an admission must match the per-admission view (Q7)
+    q7 = data_prep.count_abnormal_vs_normal(HADM).iloc[0]
+    row = result[result["HADM_ID"] == HADM].iloc[0]
+    assert row["Abnormal"] == q7["Abnormal"]
+    assert row["Total Tests"] == q7["Total Tests"]
+
+
 # --- edge cases (no data) ---
 def test_abnormal_results_empty_for_missing_admission():
     assert data_prep.get_abnormal_results(MISSING_HADM).empty

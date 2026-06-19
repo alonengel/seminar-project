@@ -52,6 +52,13 @@ def _time_ascending(df):
     return True, ""
 
 
+def _counts_consistent(df):
+    cols = {"Abnormal", "Normal", "Total Tests"}
+    if cols.issubset(df.columns) and not (df["Abnormal"] + df["Normal"] == df["Total Tests"]).all():
+        return False, "Abnormal + Normal must equal Total Tests for every admission."
+    return True, ""
+
+
 # ---------------------------------------------------------------------------
 # The registry. IDs 1-5 are unchanged from the original MVP.
 # ---------------------------------------------------------------------------
@@ -157,6 +164,15 @@ QUESTION_REGISTRY: List[QuestionSpec] = [
         func=data_prep.get_patient_admissions,
         expected_columns=["SUBJECT_ID", "HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"],
         category="Patient overview",
+    ),
+    QuestionSpec(
+        id=12,
+        label="Count abnormal vs normal results across all admissions",
+        params=[],  # dataset-wide aggregate: no admission/patient/lab input
+        func=data_prep.get_abnormal_counts_all_admissions,
+        expected_columns=["HADM_ID", "Total Tests", "Abnormal", "Normal"],
+        category="Abnormal results",
+        extra_validate=_counts_consistent,
     ),
 ]
 

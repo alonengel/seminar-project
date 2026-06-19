@@ -7,13 +7,19 @@ import pytest
 import questions
 
 
-def test_registry_has_eleven_questions():
-    assert len(questions.QUESTION_REGISTRY) == 11
+def test_registry_has_twelve_questions():
+    assert len(questions.QUESTION_REGISTRY) == 12
 
 
 def test_question_ids_are_unique_and_sequential():
     ids = [q.id for q in questions.QUESTION_REGISTRY]
-    assert ids == list(range(1, 12))
+    assert ids == list(range(1, 13))
+
+
+def test_aggregate_question_has_no_params():
+    spec = questions.get_question(12)
+    assert spec.params == []
+    assert spec.func.__name__ == "get_abnormal_counts_all_admissions"
 
 
 def test_get_question_returns_spec():

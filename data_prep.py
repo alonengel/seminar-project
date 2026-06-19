@@ -193,3 +193,29 @@ def get_patient_admissions(subject_id):
     )
 
     return admissions[["SUBJECT_ID", "HADM_ID", "ADMITTIME", "DISCHTIME", "DIAGNOSIS"]]
+
+
+# ---------------------------------------------------------------------------
+# Dataset-wide aggregate (ID 12) - no per-admission parameter
+# ---------------------------------------------------------------------------
+def get_abnormal_counts_all_admissions():
+    """Dataset-wide summary: one row per admission with the total number of
+    tests and the abnormal/normal split, ordered with the most abnormal
+    admissions first. This is the aggregate companion to count_abnormal_vs_normal."""
+    df = merged_data.dropna(subset=["HADM_ID"]).copy()
+    df["_abn"] = (df["FLAG"] == "abnormal").astype(int)
+
+    summary = (
+        df.groupby("HADM_ID")
+        .agg(**{"Total Tests": ("FLAG", "size"), "Abnormal": ("_abn", "sum")})
+        .reset_index()
+    )
+    summary["Normal"] = summary["Total Tests"] - summary["Abnormal"]
+    for col in ("HADM_ID", "Total Tests", "Abnormal", "Normal"):
+        summary[col] = summary[col].astype(int)
+
+    summary = summary.sort_values(
+        by=["Abnormal", "HADM_ID"], ascending=[False, True]
+    ).reset_index(drop=True)
+
+    return summary[["HADM_ID", "Total Tests", "Abnormal", "Normal"]]
