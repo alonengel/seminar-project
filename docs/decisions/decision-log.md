@@ -3,6 +3,13 @@
 A running log of decisions and progress for the Clinical Lab Analysis System (seminar project).
 Newest entries at the top.
 
+## 2026-06-20
+
+### Refreshed the presentation deck
+- Updated `docs/SLIDES.md` (now 14 slides) and regenerated `docs/Clinical_Lab_Analysis_System.pptx` so the deck reflects the current system: 12 questions, optional LLM routing, the guarded AgentCoder-style code-gen agent, the three UI modes + escalation dialog, and accurate quality stats (159 tests, ~93% coverage).
+- Added a "Data: source and preparation" slide aligned with the team's Part 1 document ("חלק 1 ניתוח נתונים + שאלות"): MIMIC-III ADMISSIONS/LABEVENTS/D_LABITEMS, schema inspection, and the filter/clean/join steps that build the cleaned merged dataset.
+- Made the deck reproducible: `docs/build_pptx.py` builds the `.pptx` from `SLIDES.md` (`uv run --with python-pptx python docs/build_pptx.py`), so the markdown outline is the single source of truth. python-pptx is used only as a one-off build tool (via `uv run --with`), not added as a project dependency.
+
 ## 2026-06-19
 
 ### Optional guarded LLM code-generation agent (AgentCoder-style)

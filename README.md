@@ -148,7 +148,7 @@ results and `docs/assets/screenshots/` for a UI screenshot of each question.
 - `docs/TODO.md` - task tracking
 - `docs/REPORT.md` - final project report
 - `docs/DEMO.md` - demo walkthrough script
-- `docs/SLIDES.md` - presentation outline (+ generated `Clinical_Lab_Analysis_System.pptx`)
+- `docs/SLIDES.md` - presentation outline; `docs/build_pptx.py` regenerates `Clinical_Lab_Analysis_System.pptx` from it (`uv run --with python-pptx python docs/build_pptx.py`)
 - `docs/plans/` - implementation plans
 - `docs/decisions/decision-log.md` - decisions and progress log
 - `docs/TEST_REPORT.md` - test results, coverage, and per-question expectations
