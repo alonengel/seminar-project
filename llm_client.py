@@ -122,6 +122,73 @@ def available():
     return active_provider() is not None
 
 
+_ALL_KEY_NAMES = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY")
+
+
+def key_status():
+    """Diagnose the configured LLM key without spending tokens.
+
+    Returns (state, message) where state is one of:
+    'missing', 'placeholder', 'ok', 'rejected', 'unreachable'.
+    The live check hits the provider's model-list endpoint (free, no tokens).
+    """
+    provider = active_provider()
+    if provider is None:
+        for name in _ALL_KEY_NAMES:
+            raw = (os.environ.get(name) or "").strip()
+            if raw:
+                return (
+                    "placeholder",
+                    f"{name} is set but looks like a placeholder "
+                    f"('{raw[:12]}...') so it is IGNORED - put a real key in .env",
+                )
+        return (
+            "missing",
+            "no API key in .env - LLM modes are hidden, rule-based routing only. "
+            "Copy .env.example to .env and set a key to enable them",
+        )
+    try:
+        with httpx.Client(timeout=10) as client:
+            if provider == "anthropic":
+                resp = client.get(
+                    "https://api.anthropic.com/v1/models",
+                    headers={
+                        "x-api-key": env_key("ANTHROPIC_API_KEY"),
+                        "anthropic-version": "2023-06-01",
+                    },
+                )
+            elif provider == "openai":
+                resp = client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {env_key('OPENAI_API_KEY')}"},
+                )
+            else:
+                key = env_key("GOOGLE_API_KEY") or env_key("GEMINI_API_KEY")
+                resp = client.get(
+                    f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+                )
+    except httpx.HTTPError as exc:
+        return (
+            "unreachable",
+            f"'{provider}' key found but could not be verified "
+            f"({type(exc).__name__}) - check your internet connection. "
+            "LLM modes are enabled anyway",
+        )
+    if resp.status_code in (401, 403):
+        return (
+            "rejected",
+            f"'{provider}' REJECTED the API key (HTTP {resp.status_code}) - "
+            "the key in .env is wrong or revoked. LLM modes will fail until it is fixed",
+        )
+    if resp.status_code != 200:
+        return (
+            "unreachable",
+            f"'{provider}' returned HTTP {resp.status_code} during key check - "
+            "LLM modes are enabled anyway",
+        )
+    return ("ok", f"'{provider}' API key verified and working - LLM modes enabled")
+
+
 def complete(system, user, max_tokens=_MAX_TOKENS):
     """Call the active provider, retrying transient (429/5xx/transport) errors.
 

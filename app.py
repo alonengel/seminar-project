@@ -21,6 +21,17 @@ st.set_page_config(
 )
 
 
+@st.cache_resource
+def _report_llm_status():
+    """Print the LLM key status to the console once per server process."""
+    state, message = llm_client.key_status()
+    print(f"LLM status [{state.upper()}]: {message}", flush=True)
+    return state
+
+
+_report_llm_status()
+
+
 # =========================
 # Custom Styling
 # =========================
