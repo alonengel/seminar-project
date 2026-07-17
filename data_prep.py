@@ -9,10 +9,52 @@ Keeping the data + functions here (instead of in main_pipeline.py) lets
 questions.py import them without creating an import cycle.
 """
 
+import os
+
 import pandas as pd
 
 DATA_PATH = "cleaned_merged_dataset.csv"
 
+# The dataset is too large for git, so a missing local copy is fetched once
+# from a public Google Drive share (see README "Setup").
+_DRIVE_FILE_ID = "1AwaAmPRDq_kqRmhaVAPwPAR4YpaEsElb"
+_DRIVE_URL = (
+    "https://drive.usercontent.google.com/download"
+    f"?id={_DRIVE_FILE_ID}&export=download&confirm=t"
+)
+
+
+def _ensure_dataset():
+    if os.path.exists(DATA_PATH):
+        return
+    import httpx
+
+    print(f"{DATA_PATH} not found - downloading from Google Drive (~130 MB)...", flush=True)
+    part_path = DATA_PATH + ".part"
+    try:
+        with httpx.stream("GET", _DRIVE_URL, follow_redirects=True, timeout=120) as resp:
+            resp.raise_for_status()
+            if "text/html" in resp.headers.get("content-type", ""):
+                raise RuntimeError(
+                    "Google Drive returned a page instead of the file (share "
+                    "setting may have changed from 'Anyone with the link'). "
+                    f"Download it manually and save as {DATA_PATH}."
+                )
+            with open(part_path, "wb") as f:
+                done = 0
+                for chunk in resp.iter_bytes(chunk_size=1024 * 1024):
+                    f.write(chunk)
+                    done += len(chunk)
+                    if done % (20 * 1024 * 1024) < 1024 * 1024:
+                        print(f"  ... {done // (1024 * 1024)} MB", flush=True)
+        os.replace(part_path, DATA_PATH)
+        print(f"Download complete: {DATA_PATH}", flush=True)
+    finally:
+        if os.path.exists(part_path):
+            os.remove(part_path)
+
+
+_ensure_dataset()
 merged_data = pd.read_csv(DATA_PATH)
 merged_data["CHARTTIME"] = pd.to_datetime(merged_data["CHARTTIME"], errors="coerce")
 

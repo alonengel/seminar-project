@@ -109,3 +109,66 @@ def test_summary_stats_empty_for_missing_admission():
 
 def test_patient_admissions_empty_for_missing_patient():
     assert data_prep.get_patient_admissions(MISSING_HADM).empty
+
+
+# --- dataset auto-download (_ensure_dataset) ---
+class _FakeResponse:
+    def __init__(self, content_type, chunks):
+        self.headers = {"content-type": content_type}
+        self._chunks = chunks
+
+    def raise_for_status(self):
+        pass
+
+    def iter_bytes(self, chunk_size):
+        return iter(self._chunks)
+
+
+def _fake_stream(response):
+    import contextlib
+
+    def stream(*args, **kwargs):
+        return contextlib.nullcontext(response)
+
+    return stream
+
+
+def test_ensure_dataset_noop_when_file_exists(monkeypatch):
+    import httpx
+
+    def boom(*args, **kwargs):
+        raise AssertionError("must not download when the CSV exists")
+
+    monkeypatch.setattr(httpx, "stream", boom)
+    data_prep._ensure_dataset()  # DATA_PATH exists in the project root
+
+
+def test_ensure_dataset_downloads_when_missing(tmp_path, monkeypatch):
+    import httpx
+
+    target = tmp_path / "dataset.csv"
+    monkeypatch.setattr(data_prep, "DATA_PATH", str(target))
+    response = _FakeResponse("text/csv", [b"col1,col2\n", b"1,2\n"])
+    monkeypatch.setattr(httpx, "stream", _fake_stream(response))
+
+    data_prep._ensure_dataset()
+
+    assert target.read_bytes() == b"col1,col2\n1,2\n"
+    assert not (tmp_path / "dataset.csv.part").exists()
+
+
+def test_ensure_dataset_rejects_html_interstitial(tmp_path, monkeypatch):
+    import httpx
+
+    import pytest
+
+    target = tmp_path / "dataset.csv"
+    monkeypatch.setattr(data_prep, "DATA_PATH", str(target))
+    response = _FakeResponse("text/html; charset=utf-8", [b"<html>sign in</html>"])
+    monkeypatch.setattr(httpx, "stream", _fake_stream(response))
+
+    with pytest.raises(RuntimeError, match="Google Drive"):
+        data_prep._ensure_dataset()
+
+    assert not target.exists()
+    assert not (tmp_path / "dataset.csv.part").exists()

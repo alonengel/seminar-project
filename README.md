@@ -58,9 +58,12 @@ one-place change (see "Adding a new question" below).
 uv sync
 ```
 
-3. Place `cleaned_merged_dataset.csv` in the project root (next to `app.py`).
-   The dataset is not stored in git because of its size - see
-   `docs/decisions/decision-log.md` for how to obtain it.
+3. The dataset (`cleaned_merged_dataset.csv`, ~130 MB) is not stored in git
+   because of its size. On first start the app **downloads it automatically**
+   from a public Google Drive share into the project root. To skip the
+   download, place the CSV there yourself (next to `app.py`) — a manual copy
+   can be fetched from
+   [Google Drive](https://drive.google.com/file/d/1AwaAmPRDq_kqRmhaVAPwPAR4YpaEsElb/view).
 
 ## Run
 
