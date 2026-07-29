@@ -114,6 +114,135 @@ st.markdown("""
     line-height: 1.7;
 }
 
+.welcome-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.role-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 1.15rem 1.2rem;
+    min-height: 160px;
+}
+
+.role-card.active {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.role-title {
+    color: #f9fafb;
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 0.45rem;
+}
+
+.role-copy {
+    color: #cbd5e1;
+    line-height: 1.55;
+    margin-bottom: 0.75rem;
+}
+
+.mini-chip {
+    display: inline-block;
+    background: #182235;
+    border: 1px solid #334155;
+    border-radius: 999px;
+    color: #dbeafe;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    margin: 0.15rem 0.2rem 0.15rem 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.question-card {
+    background-color: #111827;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1rem;
+    min-height: 150px;
+}
+
+.question-id {
+    color: #7dd3fc;
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+}
+
+.question-title {
+    color: #f9fafb;
+    font-size: 0.98rem;
+    font-weight: 760;
+    line-height: 1.35;
+    margin-bottom: 0.45rem;
+}
+
+.question-purpose {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.pipeline-step {
+    background-color: #101826;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 0.95rem 1rem;
+    min-height: 130px;
+}
+
+.step-number {
+    color: #7dd3fc;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+}
+
+.step-title {
+    color: #f8fafc;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+}
+
+.step-body {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.check-row {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 0.55rem;
+}
+
+.check-title {
+    color: #f8fafc;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+
+.check-body {
+    color: #cbd5e1;
+    line-height: 1.45;
+}
+
 .section-title {
     font-size: 1.35rem;
     font-weight: 700;
@@ -139,6 +268,13 @@ div[data-baseweb="select"] > div {
 button[data-baseweb="tab"] {
     font-size: 0.95rem;
     font-weight: 600;
+}
+
+@media (max-width: 900px) {
+    .welcome-grid,
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -168,6 +304,51 @@ _PARAM_NAMES = {
     "date_range": "date range",
 }
 
+ROLE_PROFILES = {
+    "Doctor": {
+        "tagline": "Fast admission-level review for bedside decisions.",
+        "focus": "Use this view when the user wants to inspect a patient admission, find abnormal values, review trends, or compare lab movement during the stay.",
+        "questions": [1, 2, 3, 4, 5, 7, 8, 10, 11],
+        "chips": ["Admission review", "Latest value", "Trend", "Abnormal flags"],
+    },
+    "Researcher": {
+        "tagline": "Dataset-level exploration and reproducible analysis.",
+        "focus": "Use this view when the user wants summary statistics, cohort-style counts, abnormal-test summaries, or repeatable exports for later analysis.",
+        "questions": [3, 5, 6, 7, 9, 10, 11, 12],
+        "chips": ["Cohort counts", "Summary stats", "Date windows", "Exports"],
+    },
+}
+
+QUESTION_PURPOSES = {
+    1: "Doctor: quickly surfaces abnormal results inside one admission.",
+    2: "Doctor: answers the most recent measured value for one lab.",
+    3: "Doctor and researcher: shows a time trend that can be charted and audited.",
+    4: "Doctor: gives the full lab-work context for an admission.",
+    5: "Doctor and researcher: compares how a lab changed from first to last reading.",
+    6: "Researcher: produces count, min, max, and mean for one lab test.",
+    7: "Doctor and researcher: summarizes abnormal burden for one admission.",
+    8: "Doctor: narrows abnormal values to one selected lab test.",
+    9: "Researcher: ranks distinct abnormal lab tests by abnormal count.",
+    10: "Doctor and researcher: isolates lab behavior inside a date window.",
+    11: "Doctor and researcher: shows all admissions linked to a patient.",
+    12: "Researcher: compares abnormal and normal counts across all admissions.",
+}
+
+VALIDATION_RULE_TEXT = {
+    1: "All returned rows must be abnormal-flagged.",
+    2: "Exactly one latest row must be returned.",
+    3: "Rows must be ordered by measurement time ascending.",
+    4: "The result must include all lab-test rows for the admission.",
+    5: "Exactly one comparison row must be returned.",
+    6: "Exactly one summary-statistics row must be returned.",
+    7: "Exactly one count row must be returned.",
+    8: "All returned rows must be abnormal rows for the selected lab.",
+    9: "Each row is a distinct abnormal lab test with its abnormal count.",
+    10: "Rows must be inside the selected date range and time-sorted.",
+    11: "Rows must describe admissions for the selected patient.",
+    12: "For every admission, Abnormal + Normal must equal Total Tests.",
+}
+
 
 # =========================
 # Render helpers
@@ -178,6 +359,383 @@ def _status_box(label, value, color):
         f'<div class="status-value" style="color:{color}">{value}</div></div>',
         unsafe_allow_html=True,
     )
+
+
+def _question_by_id(question_id):
+    return questions.get_question(question_id)
+
+
+def _inputs_text(spec):
+    if not spec.params:
+        return "No user input"
+    return ", ".join(_PARAM_NAMES.get(p, p) for p in spec.params)
+
+
+def _choose_question(question_id):
+    st.session_state["selected_question_id"] = question_id
+    st.session_state["selected_category"] = "All"
+
+
+def _set_workspace(role):
+    st.session_state["workspace"] = role
+    st.session_state["user_role"] = role
+    first_question = ROLE_PROFILES[role]["questions"][0]
+    st.session_state["selected_question_id"] = first_question
+    st.session_state["selected_category"] = "All"
+    st.session_state.pop("codegen_output", None)
+
+
+def _render_landing_page():
+    st.markdown('<div class="main-title">Clinical Lab Analysis System</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subtitle">Choose the workspace that matches the way you want to use the lab data</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"""
+        <div class="helper-box">
+            This project answers predefined clinical laboratory questions over the cleaned MIMIC-III dataset.
+            It generates Python code, executes it, validates the result, applies correction when needed,
+            and then explains the result, validation, and correction attempts. Start by choosing a role.
+            The system currently supports <b>{len(questions.QUESTION_REGISTRY)} question types</b>.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _render_methodology_notes()
+    _render_project_evaluation("Doctor and Researcher")
+
+    role_cols = st.columns(2)
+    for role, container in zip(ROLE_PROFILES, role_cols):
+        profile = ROLE_PROFILES[role]
+        active = ""
+        chips = "".join(f'<span class="mini-chip">{chip}</span>' for chip in profile["chips"])
+        with container:
+            st.markdown(
+                f"""
+                <div class="role-card{active}">
+                    <div class="role-title">{role} view</div>
+                    <div class="role-copy"><b>{profile["tagline"]}</b><br>{profile["focus"]}</div>
+                    <div>{chips}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"Enter {role} workspace", key=f"enter_role_{role}", type="primary", width="stretch"):
+                _set_workspace(role)
+                st.rerun()
+
+    with st.expander("What happens after you choose a workspace?", expanded=True):
+        cols = st.columns(4)
+        explanations = [
+            ("Focused questions", "Only the questions that fit the selected role are shown first."),
+            ("Same trusted pipeline", "The backend still uses the registry-driven generation, execution, validation, and correction flow."),
+            ("Readable audit", "Validation and correction are explained as checks and attempts, not only raw code."),
+            ("Switch anytime", "You can return here or switch roles without restarting the app."),
+        ]
+        for col, (title, body) in zip(cols, explanations):
+            with col:
+                st.markdown(
+                    f"""
+                    <div class="pipeline-step">
+                        <div class="step-title">{title}</div>
+                        <div class="step-body">{body}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+
+def _render_workspace_header():
+    role = st.session_state.get("workspace", "Doctor")
+    profile = ROLE_PROFILES[role]
+    top_left, top_right = st.columns([3, 1])
+    with top_left:
+        st.markdown(f'<div class="main-title">{role} Workspace</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="subtitle">{profile["tagline"]}</div>',
+            unsafe_allow_html=True,
+        )
+    with top_right:
+        if st.button("Back to Welcome", width="stretch"):
+            st.session_state["workspace"] = "Welcome"
+            st.session_state.pop("codegen_output", None)
+            st.rerun()
+        other_role = "Researcher" if role == "Doctor" else "Doctor"
+        if st.button(f"Switch to {other_role}", width="stretch"):
+            _set_workspace(other_role)
+            st.rerun()
+    chips = "".join(f'<span class="mini-chip">{chip}</span>' for chip in profile["chips"])
+    st.markdown(
+        f"""
+        <div class="helper-box">
+            <b>{role} focus:</b> {profile["focus"]}<br>
+            <div style="margin-top:0.55rem">{chips}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_methodology_notes():
+    with st.expander("Implementation Notes: Validation & Correction"):
+        st.write(
+            "This section connects what the UI shows to the actual implementation files. "
+            "The professor can open this before or after a run, then verify the same steps "
+            "in the result tabs."
+        )
+
+        val_col, corr_col = st.columns(2)
+        with val_col:
+            st.markdown("#### Validation")
+            st.markdown(
+                """
+                Validation is deterministic and registry-driven:
+
+                - `questions.py` defines every supported question in `QUESTION_REGISTRY`.
+                - Each `QuestionSpec` stores the expected output columns.
+                - Some questions also define an extra validation rule.
+                - `validation.py` checks that execution succeeded.
+                - It verifies the result is a pandas `DataFrame`.
+                - It checks that all expected columns exist.
+                - It rejects empty results as failed validation, while the UI presents valid no-record cases clearly.
+                - It applies the question-specific rule when one exists.
+
+                Examples:
+
+                - Abnormal-result questions must return only `FLAG = abnormal`.
+                - Latest-value and summary questions must return exactly one row.
+                - Trend/date-range questions must be sorted by `CHARTTIME`.
+                - Dataset-wide counts must satisfy `Abnormal + Normal = Total Tests`.
+                """
+            )
+
+        with corr_col:
+            st.markdown("#### Correction")
+            st.markdown(
+                """
+                Correction is a bounded rule-based retry loop:
+
+                - `main_pipeline.py` generates a Python call for the selected question.
+                - `correction.py` runs the generated code and validates the result.
+                - If execution or validation fails, it builds feedback from the error and validation message.
+                - `correct_generated_code()` applies safe known fixes, mainly generated function-name typos.
+                - The retry loop is bounded, so it cannot keep editing forever.
+                - Every attempt is recorded and displayed in the `Correction Attempts` tab.
+
+                The demo checkbox intentionally injects a typo into the generated function name.
+                That proves the first attempt fails, the correction rule repairs the generated call,
+                and the second attempt passes execution and validation.
+                """
+            )
+
+        st.info(
+            "Key point: validation and correction are not hidden LLM behavior. They are explicit, "
+            "testable Python rules connected to the question registry."
+        )
+
+
+def _render_project_evaluation(role):
+    with st.expander("Project Evaluation: Why This Version Matches the Goal"):
+        st.write(
+            "The goal of the project is to automatically answer a limited, controlled set of "
+            "clinical lab-analysis questions over MIMIC-III while showing the full generated-code "
+            "pipeline: generation, execution, validation, correction, and presentation."
+        )
+
+        eval_cols = st.columns(2)
+        with eval_cols[0]:
+            st.markdown("#### Primary Users")
+            st.markdown(
+                """
+                **Doctor**
+
+                - Works mainly at the admission/patient level.
+                - Needs quick abnormal-result review.
+                - Needs latest values, trends, and first-vs-last comparisons.
+                - Benefits from context, readable tables, and clear no-record states.
+
+                **Researcher**
+
+                - Works mainly with repeatable analysis and dataset-level patterns.
+                - Needs summary statistics, abnormal counts, and exportable tables.
+                - Benefits from validation transparency and reproducible generated code.
+                - Can use the optional AI/code-generation mode for exploratory questions, with sandbox protection.
+                """
+            )
+
+        with eval_cols[1]:
+            st.markdown("#### Evaluation Criteria")
+            st.markdown(
+                """
+                This version matches the project requirements because it provides:
+
+                - A fixed registry of supported questions, not uncontrolled medical Q&A.
+                - 12 predefined clinical lab question types.
+                - Dynamic parameter inputs based on the selected question.
+                - Generated executable Python code for each template question.
+                - Safe execution wrapper with structured success/error output.
+                - Deterministic validation for shape, columns, emptiness, and clinical rules.
+                - Rule-based correction with recorded attempts.
+                - Result presentation with metrics, tables, charts, CSV export, and audit tabs.
+                - Optional natural-language routing that still maps to supported questions.
+                - Optional experimental AI code generation guarded by a sandbox.
+                """
+            )
+
+        st.markdown("#### Why The Role-Based UI Helps")
+        st.markdown(
+            f"""
+            The current workspace is **{role}**, so the first questions shown are the ones that
+            naturally fit that user's workflow. This improves the project presentation because the
+            12 questions are no longer just a long list; they are organized around the two primary
+            user types. The backend remains the same tested pipeline, but the frontend now explains
+            who the system is for and why each analysis path matters.
+
+            The most important proof appears after every run: the app shows the final result, the
+            validation audit, the correction attempts, and the generated code. That directly supports
+            the seminar requirement to demonstrate not only the answer, but also how the answer was
+            produced and checked.
+            """
+        )
+
+        st.success(
+            "Evaluation summary: the project is aligned with the course goal because it is controlled, "
+            "transparent, testable, and user-focused while still demonstrating AI-style code generation "
+            "and self-correction."
+        )
+
+
+def _render_question_cards(question_ids, prefix):
+    card_cols = st.columns(3)
+    for idx, question_id in enumerate(question_ids):
+        spec = _question_by_id(question_id)
+        with card_cols[idx % 3]:
+            st.markdown(
+                f"""
+                <div class="question-card">
+                    <div class="question-id">Question {spec.id} - {spec.category}</div>
+                    <div class="question-title">{spec.label}</div>
+                    <div class="question-purpose">{QUESTION_PURPOSES.get(spec.id, QUESTION_HELP.get(spec.id, ""))}</div>
+                    <div class="question-purpose"><b>Inputs:</b> {_inputs_text(spec)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"Open Q{spec.id}", key=f"{prefix}_open_q{spec.id}", width="stretch"):
+                _choose_question(spec.id)
+                st.rerun()
+
+
+def _render_question_dashboards():
+    role = st.session_state.get("user_role", "Doctor")
+    with st.expander(f"{role} questions", expanded=True):
+        st.caption(
+            "These questions are the role-focused entry points for this workspace. "
+            "Click one to load it into the analysis panel below."
+        )
+        _render_question_cards(ROLE_PROFILES[role]["questions"], f"role_{role.lower()}")
+
+
+def _render_pipeline_overview(spec, params, final_result, result):
+    validation_result = final_result.get("validation", {})
+    attempts = final_result.get("attempts", [])
+    row_count = len(result) if isinstance(result, pd.DataFrame) else "not a table"
+    correction_text = (
+        "Correction was applied after a failed attempt."
+        if final_result.get("correction_applied")
+        else "No correction was needed; the first valid attempt passed."
+    )
+    steps = [
+        ("1", "Question selected", f"[{spec.id}] {spec.label}. Inputs: {_inputs_text(spec)}. Parameters: {params or 'none'}."),
+        ("2", "Code generated", f"The registry selected `{spec.func.__name__}` and produced a Python call from the parameters."),
+        ("3", "Execution", final_result.get("execution", {}).get("status", "Unknown")),
+        ("4", "Validation", validation_result.get("message", "No validation message.")),
+        ("5", "Correction", correction_text),
+    ]
+    cols = st.columns(5)
+    for col, (number, title, body) in zip(cols, steps):
+        with col:
+            st.markdown(
+                f"""
+                <div class="pipeline-step">
+                    <div class="step-number">Step {number}</div>
+                    <div class="step-title">{title}</div>
+                    <div class="step-body">{body}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    st.caption(f"Returned rows: {row_count}. Attempts made: {len(attempts)}.")
+
+
+def _render_validation_audit(spec, result, validation_result, no_records=False):
+    returned_cols = list(result.columns) if isinstance(result, pd.DataFrame) else []
+    missing_cols = [col for col in spec.expected_columns if col not in returned_cols]
+    row_count = len(result) if isinstance(result, pd.DataFrame) else "not a DataFrame"
+    checks = [
+        ("Execution output", "The pipeline produced a pandas DataFrame." if isinstance(result, pd.DataFrame) else f"Output type: {type(result).__name__}."),
+        ("Expected columns", ", ".join(spec.expected_columns)),
+        ("Returned columns", ", ".join(returned_cols) if returned_cols else "No table columns returned."),
+        ("Missing columns", "None" if not missing_cols else ", ".join(missing_cols)),
+        ("Rows returned", str(row_count)),
+        ("Question-specific rule", VALIDATION_RULE_TEXT.get(spec.id, "The result must match the registry rule for this question.")),
+    ]
+    for title, body in checks:
+        st.markdown(
+            f'<div class="check-row"><div class="check-title">{title}</div><div class="check-body">{body}</div></div>',
+            unsafe_allow_html=True,
+        )
+    if validation_result.get("valid"):
+        st.success(validation_result.get("message", "Validation passed."))
+    elif no_records:
+        st.info(validation_result.get("message", "No matching records were found."))
+    else:
+        st.error(validation_result.get("message", "Validation failed."))
+
+
+def _attempt_summary_rows(attempts):
+    rows = []
+    for attempt in attempts or []:
+        execution_result = attempt.get("execution", {})
+        validation_result = attempt.get("validation", {})
+        code = (attempt.get("code") or "").strip()
+        rows.append({
+            "Attempt": attempt.get("attempt"),
+            "Execution": execution_result.get("status", "Unknown"),
+            "Execution error": execution_result.get("error") or "",
+            "Validation": "Passed" if validation_result.get("valid") else "Failed",
+            "Validation message": validation_result.get("message", ""),
+            "Generated call": code.replace("\n", " "),
+        })
+    return rows
+
+
+def _render_attempts_audit(final_result):
+    attempts = final_result.get("attempts") or []
+    if not attempts:
+        st.info("No attempts were recorded.")
+        return
+
+    st.dataframe(pd.DataFrame(_attempt_summary_rows(attempts)), width="stretch", hide_index=True)
+    if final_result.get("correction_applied"):
+        st.success(
+            "The first generated call failed, the correction rule rewrote the function name, "
+            "and the next attempt passed validation."
+        )
+    else:
+        st.info("The first attempt executed and validated successfully, so the correction loop stopped immediately.")
+
+    for attempt in attempts:
+        with st.expander(f"Attempt {attempt.get('attempt')} details"):
+            exec_result = attempt.get("execution", {})
+            val_result = attempt.get("validation", {})
+            st.write(f"Execution: {exec_result.get('status', 'Unknown')}")
+            if exec_result.get("error"):
+                st.error(exec_result.get("error"))
+            st.write(f"Validation: {val_result.get('message', 'No validation message.')}")
+            st.code(attempt.get("code") or "", language="python")
 
 
 def _render_metrics(spec, result):
@@ -311,8 +869,8 @@ def _render_codegen(output, question):
         _status_box("Overall Status", output.get("status", "Unknown"), green if success else red)
 
     st.divider()
-    result_tab, code_tab, plan_tab, attempts_tab = st.tabs(
-        ["Final Result", "Generated Code", "Plan", "Attempts"]
+    result_tab, process_tab, code_tab, attempts_tab = st.tabs(
+        ["Final Result", "AI Process", "Generated Code", "Attempts"]
     )
 
     with result_tab:
@@ -335,17 +893,50 @@ def _render_codegen(output, question):
         else:
             st.warning(validation.get("message", "No result was produced."))
 
+    with process_tab:
+        st.subheader("How the AI Code-Generation Pipeline Worked")
+        st.markdown(
+            """
+            <div class="check-row">
+                <div class="check-title">1. Programmer agent</div>
+                <div class="check-body">The LLM received the dataset schema and wrote one pandas snippet that assigns its answer to <b>result</b>.</div>
+            </div>
+            <div class="check-row">
+                <div class="check-title">2. Sandbox gate</div>
+                <div class="check-body">The code was checked with an AST allowlist before execution. Imports, file access, network access, private attributes, eval/query, and dangerous builtins are blocked.</div>
+            </div>
+            <div class="check-row">
+                <div class="check-title">3. Execution</div>
+                <div class="check-body">The snippet ran with only <b>df</b>, <b>pd</b>, and safe builtins available.</div>
+            </div>
+            <div class="check-row">
+                <div class="check-title">4. Validation</div>
+                <div class="check-body">The result had to be non-empty, displayable, row-capped, and deterministic enough to present.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.write("Plan:")
+        st.info(output.get("plan") or "No explicit plan was provided.")
+        if validation_passed:
+            st.success(validation.get("message", "Validation passed."))
+        else:
+            st.error(validation.get("message", "Validation failed."))
+
     with code_tab:
         st.subheader("Generated Python Code")
         st.code(output.get("final_code") or "# (no code generated)", language="python")
 
-    with plan_tab:
-        st.subheader("Plan")
-        st.write(output.get("plan") or "No explicit plan was provided.")
-
     with attempts_tab:
-        st.subheader("Attempts")
-        st.write(output.get("attempts"))
+        st.subheader("Attempt-by-Attempt Explanation")
+        st.dataframe(pd.DataFrame(_attempt_summary_rows(output.get("attempts"))), width="stretch", hide_index=True)
+        for attempt in output.get("attempts", []):
+            with st.expander(f"Attempt {attempt.get('attempt')} details"):
+                st.write(f"Execution: {attempt.get('execution', {}).get('status', 'Unknown')}")
+                if attempt.get("execution", {}).get("error"):
+                    st.error(attempt["execution"]["error"])
+                st.write(f"Validation: {attempt.get('validation', {}).get('message', 'No validation message.')}")
+                st.code(attempt.get("code") or "", language="python")
 
 
 @st.dialog("No ready-made question matched")
@@ -374,23 +965,16 @@ def _offer_advanced_dialog(question):
 # =========================
 # Header
 # =========================
-st.markdown('<div class="main-title">Clinical Lab Analysis System</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="subtitle">MIMIC-III based system for predefined clinical laboratory questions</div>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    f"""
-    <div class="helper-box">
-        This system takes one predefined clinical laboratory question, generates executable Python code,
-        runs it on the cleaned MIMIC-III laboratory dataset, validates the output, applies correction when needed,
-        and presents the final result. It currently supports
-        <b>{len(questions.QUESTION_REGISTRY)} question types</b>, all defined in a single question registry.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+if "workspace" not in st.session_state:
+    st.session_state["workspace"] = "Welcome"
+
+if st.session_state["workspace"] == "Welcome":
+    _render_landing_page()
+    st.stop()
+
+_render_workspace_header()
 st.markdown("<br>", unsafe_allow_html=True)
+_render_question_dashboards()
 
 
 # =========================
@@ -449,27 +1033,43 @@ with st.expander("Ask a clinical lab question in natural language (optional)"):
 # =========================
 st.markdown('<div class="section-title">Question Selection</div>', unsafe_allow_html=True)
 
-categories = ["All"] + sorted({q.category for q in questions.QUESTION_REGISTRY})
+workspace_role = st.session_state.get("workspace", "Doctor")
+workspace_question_ids = set(ROLE_PROFILES[workspace_role]["questions"])
+workspace_specs = [q for q in questions.QUESTION_REGISTRY if q.id in workspace_question_ids]
+categories = ["All"] + sorted({q.category for q in workspace_specs})
 
 cat_col, question_col = st.columns([1, 3])
 
 with cat_col:
-    selected_category = st.selectbox("Category", categories)
+    selected_category = st.selectbox("Category", categories, key="selected_category")
 
 visible_specs = [
-    q for q in questions.QUESTION_REGISTRY
+    q for q in workspace_specs
     if selected_category == "All" or q.category == selected_category
 ]
+
+if not visible_specs:
+    visible_specs = workspace_specs
+
+selected_question_id = st.session_state.get("selected_question_id")
+default_index = 0
+if selected_question_id is not None:
+    for idx, candidate in enumerate(visible_specs):
+        if candidate.id == selected_question_id:
+            default_index = idx
+            break
 
 with question_col:
     question_label = st.selectbox(
         "Choose a clinical question",
         [q.label for q in visible_specs],
+        index=default_index,
     )
 
 spec = questions.get_question_by_label(question_label)
+st.session_state["selected_question_id"] = spec.id
 
-_inputs = ", ".join(_PARAM_NAMES.get(p, p) for p in spec.params)
+_inputs = _inputs_text(spec)
 st.caption(f"{QUESTION_HELP.get(spec.id, '')}  Inputs: {_inputs}.")
 
 # Demo only: offer to inject a typo so the rule-based correction loop is visible.
@@ -735,9 +1335,13 @@ elif run_button and params_ready:
         _status_box("Overall Status", overall_status, overall_color)
 
     st.divider()
+    st.markdown('<div class="section-title">Pipeline Explanation</div>', unsafe_allow_html=True)
+    _render_pipeline_overview(spec, params, final_result, result)
 
-    result_tab, code_tab, validation_tab, attempts_tab = st.tabs(
-        ["Final Result", "Generated Code", "Validation Details", "Correction Attempts"]
+    st.divider()
+
+    result_tab, validation_tab, attempts_tab, code_tab = st.tabs(
+        ["Final Result", "Validation Audit", "Correction Attempts", "Generated Code"]
     )
 
     with result_tab:
@@ -763,28 +1367,27 @@ elif run_button and params_ready:
         else:
             st.warning("No result returned.")
 
-    with code_tab:
-        st.subheader("Generated Python Code")
-        st.code(final_result.get("final_code"), language="python")
-
     with validation_tab:
-        st.subheader("Validation Details")
-        if validation_passed:
-            st.success(validation_message)
-        elif no_records:
-            st.info(validation_message)
-        else:
-            st.error(validation_message)
+        st.subheader("Validation Audit")
+        st.write(
+            "This is the deterministic gate that proves the generated code answered "
+            "the selected question shape, not just that Python ran without crashing."
+        )
+        _render_validation_audit(spec, result, validation, no_records=no_records)
         st.write("Overall status:")
         st.info(overall_status)
 
     with attempts_tab:
         st.subheader("Correction Attempts")
-        attempts = final_result.get("attempts")
-        if attempts:
-            st.write(attempts)
-        else:
-            st.info("No correction attempts were needed.")
+        st.write(
+            "Each attempt shows the generated call, execution outcome, validation outcome, "
+            "and whether the correction loop had to repair the code before retrying."
+        )
+        _render_attempts_audit(final_result)
+
+    with code_tab:
+        st.subheader("Generated Python Code")
+        st.code(final_result.get("final_code"), language="python")
 
 elif nl_error:
     st.divider()

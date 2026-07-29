@@ -12,6 +12,7 @@ env/
 .coverage
 htmlcov/
 coverage.xml
+streamlit.*.log
 
 # Secrets
 .env
