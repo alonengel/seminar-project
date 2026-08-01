@@ -141,7 +141,7 @@ all 12 questions live in `tests/`:
 uv run pytest
 ```
 
-105 tests, 93% line coverage. See `docs/TEST_REPORT.md` for per-question expected
+170 tests, 94% line coverage. See `docs/TEST_REPORT.md` for per-question expected
 results and `docs/assets/screenshots/` for a UI screenshot of each question.
 
 ## Project documentation
