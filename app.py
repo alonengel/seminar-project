@@ -291,6 +291,14 @@ button[data-baseweb="tab"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* Streamlit positions help tooltips with transform: translate(0, y) - x is
+   always 0, pinning the box to the left screen edge. The margin composes on
+   top of that transform: it centers the 42rem-wide tooltip horizontally
+   while keeping the vertical position next to the hovered icon. */
+div[data-baseweb="tooltip"] {
+    margin-left: max(0px, calc(50vw - 21rem)) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
