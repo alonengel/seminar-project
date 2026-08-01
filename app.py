@@ -38,7 +38,9 @@ _report_llm_status()
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 1.5rem;
+    /* Must clear Streamlit's fixed header bar (~3.75rem), or the top row of
+       widgets renders underneath the Deploy toolbar. */
+    padding-top: 4.2rem;
     padding-bottom: 2rem;
     max-width: 1500px;
 }
@@ -181,7 +183,9 @@ st.markdown("""
     border: 1px solid #30363d;
     border-radius: 12px;
     padding: 1rem;
-    min-height: 150px;
+    /* Sized to the tallest card content so every card in a row matches and
+       the Open buttons below them stay on one line. */
+    min-height: 205px;
 }
 
 .question-id {
