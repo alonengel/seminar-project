@@ -3,6 +3,7 @@ import inspect
 import altair as alt
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 import correction
 import data_prep
@@ -38,7 +39,9 @@ _report_llm_status()
 st.markdown("""
 <style>
 .block-container {
-    padding-top: 1.5rem;
+    /* Must clear Streamlit's fixed header bar (~3.75rem), or the top row of
+       widgets renders underneath the Deploy toolbar. */
+    padding-top: 4.2rem;
     padding-bottom: 2rem;
     max-width: 1500px;
 }
@@ -181,7 +184,9 @@ st.markdown("""
     border: 1px solid #30363d;
     border-radius: 12px;
     padding: 1rem;
-    min-height: 150px;
+    /* Sized to the tallest card content so every card in a row matches and
+       the Open buttons below them stay on one line. */
+    min-height: 205px;
 }
 
 .question-id {
@@ -287,8 +292,40 @@ button[data-baseweb="tab"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* Help ("?") tooltips: cap the width so Popper measures the real box
+   instead of the unwrapped ~870px text (which used to clamp the tooltip to
+   the far-left viewport edge). 24rem also keeps the help text at a readable
+   ~60-char line length. Horizontal anchoring is done by the script below. */
+div[data-testid="stTooltipContent"] {
+    max-width: 24rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# Popper places help tooltips right-aligned to the "?" icon, so the box
+# stretches leftward away from it. For left-to-right reading it should start
+# at the icon and extend right; Popper's side can't be flipped with CSS, so
+# this shifts each tooltip to the hovered icon's left edge when it opens
+# (margin composes on top of Popper's transform, keeping the vertical anchor).
+components.html(
+    """
+    <script>
+    const doc = window.parent.document;
+    const anchorTooltip = () => {
+        const tip = doc.querySelector('div[data-baseweb="tooltip"]');
+        const icon = doc.querySelector('[data-testid="stTooltipHoverTarget"]:hover');
+        if (!tip || !icon || tip.dataset.anchored) return;
+        tip.dataset.anchored = "1";
+        const shift = icon.getBoundingClientRect().left - tip.getBoundingClientRect().left;
+        const room = doc.documentElement.clientWidth - 12 - tip.getBoundingClientRect().right;
+        tip.style.marginLeft = `${Math.min(shift, room)}px`;
+    };
+    new MutationObserver(anchorTooltip).observe(doc.body, {childList: true, subtree: true});
+    </script>
+    """,
+    height=0,
+)
 
 
 merged_data = data_prep.merged_data
