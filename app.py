@@ -292,12 +292,15 @@ button[data-baseweb="tab"] {
     }
 }
 
-/* Streamlit positions help tooltips with transform: translate(0, y) - x is
-   always 0, pinning the box to the left screen edge. The margin composes on
-   top of that transform: it centers the 42rem-wide tooltip horizontally
-   while keeping the vertical position next to the hovered icon. */
-div[data-baseweb="tooltip"] {
-    margin-left: max(0px, calc(50vw - 21rem)) !important;
+/* Help ("?") tooltips are placed by Popper right-aligned above the hovered
+   icon, but Popper measures the box before Streamlit's 42rem wrap applies:
+   the oversized measurement pushes x negative and gets clamped to the far
+   left viewport edge, detaching the tooltip from its icon. Capping the
+   width up front lets Popper measure the real box and anchor the tooltip's
+   right edge to the icon on its own (verified: tooltip.right == icon.right).
+   24rem also keeps the help text at a readable ~60-char line length. */
+div[data-testid="stTooltipContent"] {
+    max-width: 24rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
