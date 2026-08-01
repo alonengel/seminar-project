@@ -88,3 +88,72 @@ def test_complete_gemini(monkeypatch):
     resp = llm_client.complete("sys", "user")
     assert resp.text == "yo"
     assert resp.provider == "gemini"
+
+
+# --- key_status (startup console diagnostic) ---
+class _FakeStatusClient:
+    """Fake httpx.Client whose get() returns a fixed status code or raises."""
+
+    def __init__(self, status_code=200, error=None):
+        self._status_code = status_code
+        self._error = error
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def get(self, *args, **kwargs):
+        if self._error is not None:
+            raise self._error
+        resp = _FakeResponse({})
+        resp.status_code = self._status_code
+        return resp
+
+
+def test_key_status_missing(monkeypatch):
+    _only(monkeypatch, None)
+    state, message = llm_client.key_status()
+    assert state == "missing"
+    assert ".env" in message
+
+
+def test_key_status_placeholder(monkeypatch):
+    _only(monkeypatch, None)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "your-key-here")
+    state, message = llm_client.key_status()
+    assert state == "placeholder"
+    assert "ANTHROPIC_API_KEY" in message
+
+
+def test_key_status_ok(monkeypatch):
+    _only(monkeypatch, "ANTHROPIC_API_KEY")
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kw: _FakeStatusClient(200))
+    state, message = llm_client.key_status()
+    assert state == "ok"
+    assert "anthropic" in message
+
+
+def test_key_status_rejected(monkeypatch):
+    _only(monkeypatch, "OPENAI_API_KEY")
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kw: _FakeStatusClient(401))
+    state, message = llm_client.key_status()
+    assert state == "rejected"
+    assert "REJECTED" in message
+
+
+def test_key_status_unreachable_on_network_error(monkeypatch):
+    _only(monkeypatch, "GOOGLE_API_KEY")
+    error = llm_client.httpx.ConnectError("no internet")
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kw: _FakeStatusClient(error=error))
+    state, message = llm_client.key_status()
+    assert state == "unreachable"
+    assert "gemini" in message
+
+
+def test_key_status_unreachable_on_server_error(monkeypatch):
+    _only(monkeypatch, "ANTHROPIC_API_KEY")
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kw: _FakeStatusClient(500))
+    state, _ = llm_client.key_status()
+    assert state == "unreachable"
