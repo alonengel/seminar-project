@@ -179,18 +179,24 @@ question types execute and validate correctly, for example:
 | 4 | HADM 158675 | All lab tests listed |
 | 5 | HADM 177047, pO2 | First 82, last 103, difference +21 mm Hg |
 
-**Automated tests:** 105 tests pass with ~93% line coverage (85% gate enforced in
+**Automated tests:** 170 tests pass with ~94% line coverage (85% gate enforced in
 `pyproject.toml`), including unit tests for every module and an end-to-end test
 exercising all 12 questions plus natural-language routing and edge cases. See
 `docs/TEST_REPORT.md` and the per-question screenshots in `docs/assets/screenshots/`.
 
 ## 10. User interface
 
-A dark-themed Streamlit app: question selection (with a category filter and a
-per-question help caption), parameter inputs rendered dynamically per question,
-an optional natural-language box, and a results area with summary metric cards,
-a trend chart (with axis labels and units), color-coded status, and tabs for the
-result, generated code, validation details, and correction attempts.
+A dark-themed Streamlit app organized around the two primary user types. It
+opens on a **Welcome page** with two role cards - **Doctor** (fast
+admission-level review) and **Researcher** (dataset-level, reproducible
+analysis) - each leading to a workspace that surfaces its role's questions
+first as clickable cards, with a switch-role button in the header. Both
+workspaces share the same backend pipeline and analysis panel: question
+selection (with a category filter and a per-question help caption), parameter
+inputs rendered dynamically per question, an optional natural-language box,
+and a results area with summary metric cards, a trend chart (with axis labels
+and units), color-coded status, and tabs for the result, generated code,
+validation audit, and correction attempts.
 
 ## 11. How to run
 

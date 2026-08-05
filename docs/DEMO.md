@@ -14,15 +14,30 @@ uv run streamlit run app.py
 Open http://localhost:8501. (Ensure `cleaned_merged_dataset.csv` is in the
 project root.)
 
-## 1. Orientation (30s)
+## 1. Orientation - the Welcome page (45s)
 
-Point out the flow described in the header: the system takes one predefined
-question, **generates Python code, runs it, validates, corrects if needed, and
-presents the result** - and supports 12 question types from a single registry.
+The app opens on a **Welcome page** with two role cards. Point out:
+
+- The project summary at the top: the system takes one predefined question,
+  **generates Python code, runs it, validates, corrects if needed, and presents
+  the result** - 12 question types from a single registry.
+- The two roles: **Doctor** (fast admission-level review: abnormal flags,
+  latest values, trends) and **Researcher** (dataset-level analysis: summary
+  stats, cohort counts, exports). Each workspace surfaces the questions that
+  fit that user's workflow first; the backend pipeline is identical.
+- Optionally expand **"Implementation Notes"** / **"Project Evaluation"** to
+  show how the UI maps to the implementation files and the course goal.
+
+Click **Enter Doctor workspace**. Inside, note the role-focused question cards
+at the top and the **Switch to Researcher** / **Back to Welcome** buttons in
+the header - you can switch roles at any time without restarting.
 
 ## 2. Structured question - trend with a chart (Q3)
 
-1. Category: **All**; Question: **"Show the trend of a selected lab test over time during an admission"**.
+In the Doctor workspace:
+
+1. Category: **All**; Question: **"Show the trend of a selected lab test over time during an admission"**
+   (or click **Open Q3** on its question card).
 2. Admission ID: **107521**; Lab Test: **Hematocrit (ITEMID 51221)**.
 3. Click **Run Analysis**.
 
@@ -44,14 +59,19 @@ to enable the optional LLM-assisted fallback (still template-only).
 
 ## 4. A few more questions (pick 2-3)
 
+In the Doctor workspace:
+
 - **Q2 latest value:** `What is the latest chloride value for admission 199884?`
   -> latest Chloride ≈ 103 mEq/L (one row; metric card "Latest value").
 - **Q5 first vs last:** admission **177047**, lab **pO2 (50821)** -> First 82,
   Last 103, **Difference +21 mm Hg** (metric cards).
-- **Q6 summary stats:** any admission + lab -> Count / Min / Max / Mean cards.
 - **Q11 patient:** Question "List all admissions for a specific patient",
   Patient ID e.g. **3** -> the patient's admissions (note: only a Patient input
   is shown - the UI renders inputs per question).
+
+Then click **Switch to Researcher** (a natural moment to show the role split):
+
+- **Q6 summary stats:** any admission + lab -> Count / Min / Max / Mean cards.
 - **Q12 dataset-wide aggregate:** Question "Count abnormal vs normal results
   across all admissions" -> no inputs are shown (the context panel says it runs
   across the whole dataset); **Run Analysis** returns one row per admission
@@ -61,7 +81,7 @@ to enable the optional LLM-assisted fallback (still template-only).
 
 ## 5. Validation and correction tabs
 
-After any run, open the **Validation Details** tab (shows the validation rule
+After any run, open the **Validation Audit** tab (shows the validation rule
 that passed) and the **Correction Attempts** tab (shows "No correction attempts
 were needed" for normal runs). Mention that correction is a bounded rule-based
 retry loop for generated-code errors.
@@ -85,6 +105,8 @@ guessing.
 ## 7. Wrap-up talking points
 
 - Single question registry -> adding a question is a one-place change.
+- Role-based workspaces (Doctor / Researcher) organize the 12 questions around
+  the two primary user types - same trusted pipeline underneath.
 - Template-based generation + validation + correction = reliable, testable,
   reproducible. LLM-assisted routing is optional (off by default, template-only).
-- 105 automated tests, ~93% coverage; per-question screenshots in `docs/`.
+- 170 automated tests, ~94% coverage; per-question screenshots in `docs/`.

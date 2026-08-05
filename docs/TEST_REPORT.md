@@ -4,11 +4,12 @@ Automated tests for the Clinical Lab Analysis System.
 
 ## Summary
 
-- **159 tests pass**, **0 failures**.
+- **170 tests pass**, **0 failures**.
 - **94% line coverage** (target: 85%).
 - Layers covered: unit tests for every logic module (including the code-gen
   sandbox, programmer agent, and orchestration loop) + an end-to-end test for the
-  Streamlit UI that exercises **all 12 questions** and the experimental code-gen mode.
+  Streamlit UI that enters both role workspaces (Doctor / Researcher) and
+  exercises **all 12 questions** and the experimental code-gen mode.
 
 Run them with:
 
@@ -30,15 +31,15 @@ uv run pytest
 | `llm_router.py` | 100% |
 | `result_presentation.py` | 100% |
 | `sandbox.py` | 99% |
+| `data_prep.py` | 96% |
+| `main_pipeline.py` | 95% |
 | `validation.py` | 95% |
-| `data_prep.py` | 95% |
+| `app.py` | 94% |
 | `code_agent.py` | 94% |
-| `app.py` | 93% |
-| `main_pipeline.py` | 93% |
 | `presentation_agent.py` | 92% |
-| `questions.py` | 91% |
 | `question_router.py` | 91% |
-| `llm_client.py` | 87% |
+| `questions.py` | 91% |
+| `llm_client.py` | 90% |
 | **Total** | **94%** |
 
 ## End-to-end results per question

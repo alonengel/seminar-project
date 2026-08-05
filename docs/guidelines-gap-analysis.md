@@ -14,7 +14,7 @@ are used here as **inspiration**, not a binding rubric.
   (`data_prep`, `questions`, `code_generation`, `execution`, `validation`,
   `correction`, `result_presentation`, `main_pipeline`, `app`).
 - **Single source of truth** for questions via a config-driven registry.
-- **Tests + coverage**: 105 tests, 93% line coverage (target 85%), including a
+- **Tests + coverage**: 170 tests, 94% line coverage (target 85%), including a
   per-question end-to-end test and documented expected results (see
   `TEST_REPORT.md`).
 - **Edge cases & graceful degradation**: no-records banner, correction loop,

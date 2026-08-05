@@ -19,7 +19,7 @@ Status legend: [x] done, [~] in progress, [ ] not started.
       fixed result banner
 - [x] Cleanup: remove mock code; add `requirements.txt` and `README.md`
 - [x] Fix bordered-card rendering and pin a dark theme
-- [x] Test suite: unit + per-question end-to-end (105 tests, 93% coverage)
+- [x] Test suite: unit + per-question end-to-end (170 tests, 94% coverage)
 - [x] Per-question browser screenshots and `docs/TEST_REPORT.md`
 - [x] Project docs: `PRD.md`, `PLAN.md`, `TODO.md`
 
@@ -37,7 +37,7 @@ Status legend: [x] done, [~] in progress, [ ] not started.
       across all admissions (no inputs; param-less registry entry)
 - [x] Route "all admissions" natural-language queries to Q12 (rules + LLM)
 - [x] Clearer per-admission routing message that points to the aggregate
-- [x] Tests + docs updated for 12 questions (105 tests, 93% coverage)
+- [x] Tests + docs updated for 12 questions (170 tests, 94% coverage)
 
 ## Optional / nice-to-have (see `guidelines-gap-analysis.md`)
 

@@ -68,11 +68,14 @@ Team: Hala Hillou, Dana Nmarny, Anas Khoury, Alon Engel
 - Inspired by AgentCoder (arXiv 2312.13010); lightweight, in-repo orchestration
   (no CrewAI/AutoGen). Off by default and clearly labelled experimental.
 
-## Slide 10 - User interface
-- Three modes: Rules only | Rules, then AI | Advanced: AI writes code.
-- Question selection + dynamic inputs + help captions.
-- Escalation dialog: if a template cannot match, one click re-runs in Advanced.
-- Results: metric cards, trend chart, color-coded status, generated-code tab.
+## Slide 10 - User interface: role-based workspaces
+- Welcome page with two roles: Doctor (admission-level review) and
+  Researcher (dataset-level analysis) - switch anytime, same pipeline.
+- Each workspace surfaces its role's questions first as clickable cards.
+- Three NL modes: Rules only | Rules, then AI | Advanced: AI writes code;
+  escalation dialog re-runs an unmatched query in Advanced with one click.
+- Results: metric cards, trend chart, color-coded status, and tabs for the
+  result, validation audit, correction attempts, and generated code.
 
 ## Slide 11 - Evaluation
 - All 12 question types pass execution + validation across multiple admissions.
@@ -82,10 +85,11 @@ Team: Hala Hillou, Dana Nmarny, Anas Khoury, Alon Engel
 
 ## Slide 12 - Quality and engineering
 - Modular design, single source of truth, docstrings.
-- 159 automated tests, ~93% line coverage (85% gate); all run offline.
+- 170 automated tests, ~94% line coverage (85% gate); all run offline.
 - Managed with uv; secrets only in `.env`; clean, logical git history.
 
 ## Slide 13 - Demo
+- Welcome page -> enter the Doctor workspace (role cards).
 - Structured trend question -> chart and generated code.
 - Same question in natural language -> identical result.
 - Force a correction (demo typo toggle) -> the corrector repairs the code.

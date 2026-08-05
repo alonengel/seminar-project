@@ -3,6 +3,31 @@
 A running log of decisions and progress for the Clinical Lab Analysis System (seminar project).
 Newest entries at the top.
 
+## 2026-08-05
+
+### Refreshed all UI screenshots; docs brought back in sync
+- Recaptured every screenshot in `docs/assets/screenshots/` in a real headless Chromium browser against the current role-workspace UI, driving both workspaces (Doctor: Q1-5, 7, 8, 10, 11; Researcher: Q6, 9, 12). Added previously missing views: the Welcome entry page (`welcome.png` collapsed, `welcome_expanded.png` with the implementation-notes and project-evaluation sections open) and the dataset-wide `q12.png`. The June originals are kept in `docs/assets/screenshots/old/` to show the UI's progress.
+- Updated DEMO/REPORT/SLIDES/TEST_REPORT/TODO/gap-analysis for the role-based UI (the demo script now starts on the Welcome page and switches roles mid-demo) and unified the stale test counts (105/159 in various docs) to the actual 170 tests / 94% coverage; regenerated the PPTX deck.
+
+## 2026-08-01
+
+### UI polish round (merged as PR #1, `ui-improvements`)
+- Fixed the workspace header clipping and made the question cards in a row equal height so the Open buttons align.
+- Reworked the help tooltips: anchored to their help icon (instead of screen-centered) and extending rightward from it, after two earlier positioning attempts (left-edge, then screen-centered) read poorly on wide layouts.
+
+## 2026-07-29
+
+### Role-based workspaces (Doctor / Researcher)
+- Reworked the UI around the two primary user types: the app now opens on a Welcome page with two role cards, each leading to a workspace that surfaces its role's questions first as clickable cards (Doctor: admission-level review; Researcher: dataset-level analysis). A header offers Switch-role and Back-to-Welcome at any time; the backend pipeline and analysis panel are unchanged and shared.
+- Rationale: the 12 questions are no longer one long list - they are organized around who asks them, which also makes the seminar presentation's user-story clearer. Welcome-page expanders (Implementation Notes, Project Evaluation) connect the UI to the implementation files and the course goal.
+- End-to-end tests now enter a workspace before exercising each question and assert the role dashboards show the right questions.
+
+## 2026-07-17
+
+### Dataset auto-download + startup key status
+- `data_prep.py` now fetches `cleaned_merged_dataset.csv` from a public Google Drive share when it is missing locally (the file is too large for git), so `uv sync && uv run streamlit run app.py` works on a fresh clone.
+- The app prints the LLM API-key status (provider found / missing) to the console once at startup, making "why is AI mode off?" diagnosable without digging.
+
 ## 2026-06-20
 
 ### Refreshed the presentation deck
