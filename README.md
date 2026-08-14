@@ -156,4 +156,5 @@ results and `docs/assets/screenshots/` for a UI screenshot of each question.
 - `docs/decisions/decision-log.md` - decisions and progress log
 - `docs/TEST_REPORT.md` - test results, coverage, and per-question expectations
 - `docs/guidelines-gap-analysis.md` - mapping to professional-software guidelines
-- `docs/assets/screenshots/` - per-question UI screenshots
+- `docs/assets/screenshots/` - per-question UI screenshots (June originals under `old/`)
+- `docs/source-materials/` - original course/team documents (project guide, Part 1 data-analysis PDF)
